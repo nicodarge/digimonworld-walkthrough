@@ -40,7 +40,10 @@ header:
 - `en/*.html` — English pages (translated, same structure).
 
 French is the source of truth; English is generated from per-page translation
-fragments in `sources/fragments/<slug>.en.html`.
+fragments in `sources/fragments/<slug>.en.html`. Place names use the **official
+Digimon World (PSX) English area names** (File City, Factorial Town, Dragon Eye
+Lake, Misty Trees, Mount Infinity, Speedy Time Zone, …) rather than literal
+translations of the French fan-site names — see `tools/apply_place_names.py`.
 
 ## Structure
 

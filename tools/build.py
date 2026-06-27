@@ -259,7 +259,7 @@ def home_content(lang):
   guide gathers everything you need to finish it.</p>
 <div class="callout callout-warn">
   <strong>Good to know:</strong> a bug present in several French releases prevents you from entering
-  Ogremon's fortress (Grand Canyon). Whamon and Shellmon then become unrecruitable; you can still beat
+  the Ogre Fortress (Great Canyon). Whamon and Shellmon then become unrecruitable; you can still beat
   the game, but it is harder.
 </div>
 <h2>Where to start</h2>
