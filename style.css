@@ -77,6 +77,8 @@ img { max-width: 100%; height: auto; }
   color: #5a3c12; font-size: .95rem;
 }
 .callout strong { color: #7a4e10; }
+.callout-warn { background: #fdecec; border-color: #f3b6b6; border-left-color: #d6453f; color: #6a2420; }
+.callout-warn strong { color: #8a2a24; }
 
 /* ---- Section cards (home) ---- */
 .sections { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); margin: 18px 0; }

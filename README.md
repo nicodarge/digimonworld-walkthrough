@@ -29,38 +29,53 @@ snapshots (mostly 2023-04-29).
   removed) were dropped. Some external links in the content point to sites that
   no longer exist; they are kept as-is for fidelity.
 
+## Languages
+
+The site is **bilingual (French / English)** with a language switcher in the
+header:
+
+- `index.html` — language landing that redirects to `fr/` or `en/` based on the
+  browser, with manual links as a fallback.
+- `fr/*.html` — French pages (the original language of the content).
+- `en/*.html` — English pages (translated, same structure).
+
+French is the source of truth; English is generated from per-page translation
+fragments in `sources/fragments/<slug>.en.html`.
+
 ## Structure
 
-```
-*.html         # generated pages (index.html = home)
-style.css      # modern responsive styles
-nav.js         # mobile nav toggle + wide-table scroll wrapping
-id2/           # Digimon sprites
-images/ design/ screenshots/ css/ js/ Download/   # original assets
-sources/       # the restoration's source of truth
-  raw/         #   archived pages captured from the Wayback Machine
-  raw/evol/    #   archived &evol= sub-pages
-  wayback-*.txt#   CDX manifests (which URLs/timestamps were captured)
+```text
+index.html        # language landing (redirect FR/EN)
+fr/  en/          # the pages, one tree per language
+style.css         # modern responsive styles (shared)
+nav.js            # mobile nav toggle + wide-table scroll wrapping (shared)
+id2/              # Digimon sprites
+images/ design/ screenshots/ css/ js/ Download/   # original assets (shared)
+sources/          # the restoration's source of truth
+  raw/            #   archived pages captured from the Wayback Machine
+  raw/evol/       #   archived &evol= sub-pages
+  fragments/      #   per-page content fragments: <slug>.fr.html + <slug>.en.html
+  wayback-*.txt   #   CDX manifests (which URLs/timestamps were captured)
 tools/
-  build.py     # regenerates the *.html pages from sources/raw
+  build.py        # regenerates fr/ + en/ from sources/
+  verify.py       # checks links, assets, i18n parity, leftover legacy markup
   requirements.txt
+.github/workflows/ci.yml   # build-reproducibility + verify + Pages deploy
+.pre-commit-config.yaml    # same checks locally before each commit
 ```
 
-The site is plain static files — open `index.html` locally, or serve the folder
-with any static web server.
-
-## Rebuilding
-
-The HTML pages are generated from the archived sources in `sources/raw`:
+## Rebuilding & verifying
 
 ```sh
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r tools/requirements.txt
-python tools/build.py
+python tools/build.py     # regenerate fr/ and en/ from sources/
+python tools/verify.py    # fail on any broken link, missing asset, parity gap
 ```
 
-Editing the archived content or the build script and re-running regenerates the
-site deterministically.
+The build is deterministic: same sources → identical output. CI rebuilds and
+fails if the committed pages are stale, then runs `verify.py`, then deploys to
+GitHub Pages. Install the local checks with `pre-commit install`.
 
 ## Credits & legal
 

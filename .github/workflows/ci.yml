@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: pip install -r tools/requirements.txt
+
+      - name: Build is reproducible from sources
+        run: |
+          python tools/build.py
+          if ! git diff --quiet; then
+            echo "::error::Generated files are out of date. Run 'python tools/build.py' and commit the result."
+            git --no-pager diff --stat
+            exit 1
+          fi
+
+      - name: Verify site (HTML, links, assets, i18n parity)
+        run: python tools/verify.py
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Stage publishable site
+        run: |
+          mkdir -p _site
+          cp -r index.html style.css nav.js .nojekyll fr en \
+                id2 images screenshots design css js Download _site/ 2>/dev/null || true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
