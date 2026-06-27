@@ -1,0 +1,10 @@
+# Python build environment (recreate with tools/requirements.txt)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# local screenshots / scratch
+/shots/
+/shots2/
+*.tmp

@@ -32,15 +32,35 @@ snapshots (mostly 2023-04-29).
 ## Structure
 
 ```
-*.html        # one file per page (index.html = home)
-style.css     # modern responsive styles
-nav.js        # mobile nav toggle + wide-table scroll wrapping
-id2/          # Digimon sprites
+*.html         # generated pages (index.html = home)
+style.css      # modern responsive styles
+nav.js         # mobile nav toggle + wide-table scroll wrapping
+id2/           # Digimon sprites
 images/ design/ screenshots/ css/ js/ Download/   # original assets
+sources/       # the restoration's source of truth
+  raw/         #   archived pages captured from the Wayback Machine
+  raw/evol/    #   archived &evol= sub-pages
+  wayback-*.txt#   CDX manifests (which URLs/timestamps were captured)
+tools/
+  build.py     # regenerates the *.html pages from sources/raw
+  requirements.txt
 ```
 
 The site is plain static files — open `index.html` locally, or serve the folder
 with any static web server.
+
+## Rebuilding
+
+The HTML pages are generated from the archived sources in `sources/raw`:
+
+```sh
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r tools/requirements.txt
+python tools/build.py
+```
+
+Editing the archived content or the build script and re-running regenerates the
+site deterministically.
 
 ## Credits & legal
 
