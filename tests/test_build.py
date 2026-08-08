@@ -117,3 +117,43 @@ def test_the_sitemap_lists_every_built_page():
     for lang in ("fr", "en"):
         for name in sorted(os.listdir(os.path.join(REPO, lang))):
             assert f"{build.SITE_URL}/{lang}/{name}" in sitemap, f"{lang}/{name}"
+
+
+# --------------------------------------------------------------------------
+# Cache busting
+# --------------------------------------------------------------------------
+
+def test_shared_assets_are_referenced_with_a_content_version():
+    """Cloudflare caches .css and .js by extension for four hours by default.
+
+    With stable filenames the edge cannot tell a new deploy from the old one:
+    a stylesheet fix sat on the origin while the edge served the previous file
+    and the layout stayed broken for visitors, with every check green.
+    """
+    html = read("fr", "index.html")
+    assert re.search(r'style\.css\?v=[0-9a-f]{10}"', html)
+    assert re.search(r'nav\.js\?v=[0-9a-f]{10}"', html)
+    assert re.search(r'style\.css\?v=[0-9a-f]{10}"', read("404.html"))
+
+
+def test_the_version_is_derived_from_the_file_and_moves_with_it():
+    """Content-derived, so the build stays reproducible and the URL only moves
+    when the file does."""
+    assert build.asset_version("style.css") == build.asset_version("style.css")
+    assert build.asset_version("style.css") != build.asset_version("nav.js")
+
+    html = read("fr", "index.html")
+    stamped = re.search(r'style\.css\?v=([0-9a-f]{10})"', html).group(1)
+    assert stamped == build.asset_version("style.css")
+
+
+def test_every_page_carries_the_same_version():
+    """A page left on an older stamp would fetch a stylesheet the rest is not
+    using."""
+    stamps = set()
+    for lang in ("fr", "en"):
+        for name in sorted(os.listdir(os.path.join(REPO, lang))):
+            m = re.search(r'style\.css\?v=([0-9a-f]{10})"', read(lang, name))
+            assert m, f"{lang}/{name} does not version its stylesheet"
+            stamps.add(m.group(1))
+    assert len(stamps) == 1, stamps

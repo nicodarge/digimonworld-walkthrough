@@ -83,7 +83,9 @@ def check_page(path, lang):
                 if tag == "img":
                     err(name, f"hotlinked/external image: {v}")
                 continue
-            target = os.path.normpath(os.path.join(base, v.split("#")[0]))
+            # strip both the fragment and the ?v= cache buster; the asset on
+            # disk has neither.
+            target = os.path.normpath(os.path.join(base, v.split("#")[0].split("?")[0]))
             if not (os.path.exists(target) and os.path.getsize(target) > 0):
                 err(name, f"missing asset {attr}={v}")
 
@@ -92,7 +94,7 @@ def check_page(path, lang):
         h = a["href"].strip()
         if h.startswith(("http://", "https://", "mailto:", "#")) or not h:
             continue
-        target = os.path.normpath(os.path.join(base, h.split("#")[0]))
+        target = os.path.normpath(os.path.join(base, h.split("#")[0].split("?")[0]))
         if not os.path.exists(target):
             err(name, f"broken internal link: {h}")
 
