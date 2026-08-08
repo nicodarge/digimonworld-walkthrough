@@ -273,6 +273,65 @@ def _drop_duplicate_title(soup, h1):
         return
 
 
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def _redact_emails(body):
+    """Drop third-party email addresses from the published pages.
+
+    The archive carries contributors' personal addresses from 2003, written
+    when the page was one corner of a personal free.fr space. Republishing them
+    on an indexed site hands them to every address harvester that passes, and
+    the people concerned never agreed to that -- their contribution was the
+    tool, not their inbox.
+
+    Attribution survives: a mailto link keeps its visible text, so "Par
+    <a>Fire_Storm</a>" simply becomes "Par Fire_Storm". Only the address goes.
+    This is done here rather than in sources/, which stays verbatim so the
+    restoration remains auditable against the Wayback snapshots.
+    """
+    for a in body.find_all("a", href=True):
+        if a["href"].strip().lower().startswith("mailto:"):
+            a.unwrap()
+
+    # An address that was only an href is already gone. One that was visible
+    # text leaves the clause that introduced it pointing at nothing -- "vous
+    # pouvez le contacter a l'adresse suivante" followed by a line break reads
+    # as a broken page, not a redacted one. In this archive each such clause
+    # sits on its own <br>-delimited line, so drop the line: back to the
+    # previous <br> in the same parent, through the address, and the <br> that
+    # closed it.
+    for node in list(body.find_all(string=EMAIL_RE)):
+        parent = node.parent
+        if parent is None:
+            continue
+        siblings = list(parent.children)
+        if node not in siblings:
+            continue
+
+        idx = siblings.index(node)
+        start = 0
+        for i in range(idx - 1, -1, -1):
+            if getattr(siblings[i], "name", None) == "br":
+                start = i + 1
+                break
+
+        end = idx
+        if idx + 1 < len(siblings) and getattr(siblings[idx + 1], "name", None) == "br":
+            end = idx + 1
+
+        for victim in siblings[start:end + 1]:
+            victim.extract()
+
+    # Belt and braces. An address somewhere this archive does not currently put
+    # one -- inside a table cell, say -- still has to go, even if the prose
+    # around it then reads a little short. verify.py fails on any address that
+    # reaches the output, so this branch is what keeps a future source edit
+    # from turning that check into a hard stop.
+    for node in list(body.find_all(string=EMAIL_RE)):
+        node.replace_with(EMAIL_RE.sub("", node))
+
+
 def enhance(fragment, lang, h1):
     """Apply every structural fix to one page's content fragment."""
     soup = BeautifulSoup(fragment, "lxml")
@@ -282,4 +341,5 @@ def enhance(fragment, lang, h1):
     _sprite_alt(body)
     _icon_links(body, lang)
     _tables(body, lang)
+    _redact_emails(body)
     return body.decode_contents().strip()

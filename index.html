@@ -8,11 +8,11 @@
 <!-- This page holds no content of its own: it exists to send a reader to fr/ or
      en/. The canonical points at the English home so the two real home pages
      collect the signals instead of competing with an empty shell at the root,
-     which is also why it carries no og:* block. -->
+     which is also why it carries no og:* block and no hreflang cluster of its
+     own — hreflang belongs on the canonical version of a page, and declaring
+     it here would have the stub competing for the very signals the canonical
+     hands away. fr/index.html and en/index.html already point at each other. -->
 <link rel="canonical" href="https://digimon-world.groniko.fr/en/index.html">
-<link rel="alternate" hreflang="fr" href="fr/">
-<link rel="alternate" hreflang="en" href="en/">
-<link rel="alternate" hreflang="x-default" href="en/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <script>
   var l = (navigator.language || "en").toLowerCase().indexOf("fr") === 0 ? "fr" : "en";

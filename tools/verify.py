@@ -128,7 +128,14 @@ def check_page(path, lang):
         if not soup.select_one(sel):
             err(name, f"missing {what}")
 
-    # 13. soft: obvious untranslated French in the English tree
+    # 13. no third-party email address reaches the published pages. The archive
+    #     is full of 2003 contributor addresses; enhance.py strips them, and
+    #     this is what keeps a future source or template change from quietly
+    #     putting one back on an indexed site.
+    for hit in set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", raw)):
+        err(name, f"email address published: {hit}")
+
+    # 14. soft: obvious untranslated French in the English tree
     if lang == "en":
         text = soup.select_one("main").get_text(" ", strip=True).lower() if soup.select_one("main") else ""
         fr_markers = re.findall(r"\b(lorsqu|aujourd|vélocité|digivolue|niveau|toutefois|pêche|épée)\w*", text)
@@ -172,6 +179,22 @@ def main():
     for f in ("sitemap.xml", "robots.txt", "404.html", "favicon.svg"):
         if not os.path.exists(os.path.join(REPO, f)):
             err(f, "missing from the built site")
+
+    # The root landing page sits outside the per-language loop, so check #12
+    # never reaches it — and it is the one page a crawler hits first. It also
+    # must NOT carry hreflang: its canonical points at en/, and hreflang on a
+    # non-canonical page has the stub competing for the signals it hands away.
+    root = os.path.join(REPO, "index.html")
+    if not os.path.exists(root):
+        err("index.html", "missing from the built site")
+    else:
+        soup = BeautifulSoup(open(root, encoding="utf-8").read(), "lxml")
+        for sel, what in [('link[rel="canonical"]', "canonical"),
+                          ('meta[name="description"]', "description")]:
+            if not soup.select_one(sel):
+                err("index.html", f"missing {what}")
+        if soup.select_one('link[rel="alternate"][hreflang]'):
+            err("index.html", "hreflang on a page whose canonical points elsewhere")
 
     # 9. FR/EN parity — same set of pages
     if "fr" in pages and "en" in pages:
