@@ -1,0 +1,5 @@
+# Test-only. The build itself needs nothing beyond tools/requirements.txt --
+# keeping these separate is what lets CI's reproducibility gate run against the
+# same dependency set a contributor builds with.
+-r requirements.txt
+pytest>=8.0

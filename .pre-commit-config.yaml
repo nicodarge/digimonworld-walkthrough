@@ -31,12 +31,24 @@ repos:
         language: python
         additional_dependencies: [beautifulsoup4, lxml]
         pass_filenames: false
-        files: '^(tools/build\.py|sources/)'
+        # enhance.py is imported by build.py and does most of the markup work,
+        # so a commit touching only it changes the output too. Left out, the
+        # staleness surfaces in CI's reproducibility gate instead of here,
+        # which is the gap this hook exists to close.
+        files: '^(tools/(build|enhance)\.py|sources/)'
 
       - id: verify-site
         name: verify site (links, assets, i18n parity)
         entry: python3 tools/verify.py
         language: python
         additional_dependencies: [beautifulsoup4, lxml]
+        pass_filenames: false
+        always_run: true
+
+      - id: tests
+        name: tests (transforms, and every verify check fed what it must refuse)
+        entry: python3 -m pytest tests/ -q
+        language: python
+        additional_dependencies: [beautifulsoup4, lxml, pytest]
         pass_filenames: false
         always_run: true

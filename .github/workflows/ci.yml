@@ -7,12 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   verify:
@@ -39,23 +33,21 @@ jobs:
       - name: Verify site (HTML, links, assets, i18n parity)
         run: python tools/verify.py
 
-  deploy:
-    needs: verify
-    if: github.ref == 'refs/heads/main'
+  test:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - name: Stage publishable site
-        run: |
-          mkdir -p _site
-          cp -r index.html style.css nav.js .nojekyll fr en \
-                id2 images screenshots design css js Download _site/ 2>/dev/null || true
-      - uses: actions/upload-pages-artifact@v3
+
+      - uses: actions/setup-python@v5
         with:
-          path: _site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install -r tools/requirements-dev.txt
+
+      # Unit tests over the build's own transforms, plus fault injection
+      # against every verify.py check: each one is fed the input it exists to
+      # refuse and must fail on it. A check that only ever sees valid input
+      # proves nothing.
+      - name: Tests
+        run: pytest tests/ -q

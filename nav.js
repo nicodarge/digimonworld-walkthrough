@@ -1,4 +1,4 @@
-// Mobile nav toggle + wrap wide legacy tables for horizontal scrolling.
+// Mobile nav toggle, wide-table scroll wrapping, and the back-to-top button.
 (function () {
   var btn = document.querySelector(".nav-toggle");
   var nav = document.querySelector(".site-nav");
@@ -7,13 +7,51 @@
       var open = nav.classList.toggle("open");
       btn.setAttribute("aria-expanded", open ? "true" : "false");
     });
+    // Escape closes the panel and hands focus back to the control that opened it.
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && nav.classList.contains("open")) {
+        nav.classList.remove("open");
+        btn.setAttribute("aria-expanded", "false");
+        btn.focus();
+      }
+    });
   }
-  // Make wide tables scrollable instead of breaking the layout.
+
+  // Make wide tables scrollable instead of breaking the layout. Tables the build
+  // turned into a card list handle narrow screens on their own.
   document.querySelectorAll("main table").forEach(function (t) {
-    if (t.closest(".table-scroll")) return;
+    if (t.closest(".table-scroll") || t.classList.contains("t-cards")) return;
     var w = document.createElement("div");
     w.className = "table-scroll";
+    if (t.dataset.scrollHint) {
+      w.setAttribute("role", "region");
+      w.setAttribute("aria-label", t.dataset.scrollHint);
+      w.tabIndex = 0;
+    }
     t.parentNode.insertBefore(w, t);
     w.appendChild(t);
   });
+
+  // One back-to-top control, in place of the arrow the archive repeated after
+  // every section banner.
+  var label = document.documentElement.lang === "fr" ? "Retour en haut" : "Back to top";
+  var top = document.createElement("button");
+  top.type = "button";
+  top.className = "to-top-btn";
+  top.textContent = "↑ " + label;
+  document.body.appendChild(top);
+  top.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    var main = document.getElementById("content");
+    if (main) main.focus({ preventScroll: true });
+  });
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(function () {
+      top.classList.toggle("show", window.scrollY > 600);
+      ticking = false;
+    });
+  }, { passive: true });
 })();

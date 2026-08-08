@@ -50,20 +50,33 @@ translations of the French fan-site names — see `tools/apply_place_names.py`.
 ```text
 index.html        # language landing (redirect FR/EN)
 fr/  en/          # the pages, one tree per language
+404.html          # not-found page, bilingual
+favicon.svg       # site icon
+robots.txt        # crawler policy, points at the sitemap
+sitemap.xml       # every page of both language trees
 style.css         # modern responsive styles (shared)
 nav.js            # mobile nav toggle + wide-table scroll wrapping (shared)
 id2/              # Digimon sprites
-images/ design/ screenshots/ css/ js/ Download/   # original assets (shared)
+images/           # original assets, plus og-card.png (the share card)
+design/ screenshots/ css/ js/ Download/           # original assets (shared)
 sources/          # the restoration's source of truth
   raw/            #   archived pages captured from the Wayback Machine
   raw/evol/       #   archived &evol= sub-pages
   fragments/      #   per-page content fragments: <slug>.fr.html + <slug>.en.html
   wayback-*.txt   #   CDX manifests (which URLs/timestamps were captured)
 tools/
-  build.py        # regenerates fr/ + en/ from sources/
+  build.py        # regenerates fr/ + en/ from sources/, plus the files above
+  enhance.py      # turns the archived 2003 markup into accessible, responsive
+                  #   HTML: banner images become real headings, sprites get an
+                  #   alt, header rows become <th> and stamp data-label on each
+                  #   cell for the mobile card layout. Imported by build.py.
   verify.py       # checks links, assets, i18n parity, leftover legacy markup
+  make_og_image.py  # composes images/og-card.png, the 1200x630 share card.
+                  #   Run by hand, never by build.py: its output is committed,
+                  #   and wiring it in would make the CI reproducibility gate
+                  #   depend on Pillow rendering identically across versions.
   requirements.txt
-.github/workflows/ci.yml   # build-reproducibility + verify + Pages deploy
+.github/workflows/ci.yml   # build-reproducibility + verify
 .pre-commit-config.yaml    # same checks locally before each commit
 ```
 
@@ -77,8 +90,51 @@ python tools/verify.py    # fail on any broken link, missing asset, parity gap
 ```
 
 The build is deterministic: same sources → identical output. CI rebuilds and
-fails if the committed pages are stale, then runs `verify.py`, then deploys to
-GitHub Pages. Install the local checks with `pre-commit install`.
+fails if the committed pages are stale, then runs `verify.py`, then the tests.
+Install the local checks with `pre-commit install`.
+
+## Tests
+
+```sh
+pip install -r tools/requirements-dev.txt
+pytest tests/ -q
+```
+
+Two kinds, and the second is the point.
+
+`tests/test_enhance.py` and `tests/test_build.py` cover the transforms: the
+table conversion, the icon links, the sprite alts, the link rewriting, and the
+email redaction — where each case names what must **survive**, not only what
+must go. The redaction deletes content, and an over-deletion is silent:
+`verify.py` fails on an address that survives, never on a paragraph that
+vanished.
+
+`tests/test_verify.py` feeds every `verify.py` check the input it exists to
+refuse — a duplicate description, a missing canonical, an image with no alt, a
+broken anchor, a hotlinked image, an unlabelled card table, an `og:image` that
+is relative or on another host or the wrong size — and asserts it fails. A
+check only ever shown valid input proves nothing about what it lets through.
+`test_the_unmutated_baseline_is_clean` is what stops that file passing
+vacuously if the fixtures drift.
+
+The suite is measured by mutation rather than trusted: breaking the redaction's
+`<br>` boundary, its whitespace-tolerant forward scan, the `og:image` dimension
+comparison, its absolute-URL requirement, or the redaction call itself each
+makes tests fail. That is what says the tests can catch a regression, rather
+than merely pass.
+
+## Hosting
+
+The site is served at <https://digimon-world.groniko.fr>, self-hosted rather
+than on GitHub Pages. Delivery is pull-only: the web server clones this
+repository over anonymous HTTPS and keeps it at the tip of `main`, so a merge
+reaches the site on the server's next configuration run. Nothing is pushed from
+CI and no credential exists on either side — which is why this repository is
+public.
+
+`SITE_URL` in `tools/build.py` is that origin. It is baked into every canonical
+link, `og:url` and sitemap entry, so it is the one place to change if the site
+ever moves.
 
 ## Credits & legal
 
