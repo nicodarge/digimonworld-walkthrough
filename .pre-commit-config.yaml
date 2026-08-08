@@ -44,3 +44,11 @@ repos:
         additional_dependencies: [beautifulsoup4, lxml]
         pass_filenames: false
         always_run: true
+
+      - id: tests
+        name: tests (transforms, and every verify check fed what it must refuse)
+        entry: python3 -m pytest tests/ -q
+        language: python
+        additional_dependencies: [beautifulsoup4, lxml, pytest]
+        pass_filenames: false
+        always_run: true

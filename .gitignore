@@ -4,6 +4,12 @@ venv/
 __pycache__/
 *.pyc
 
+.pytest_cache/
+# A test writes a mutated copy of a page beside the original so its relative
+# links still resolve, and removes it in a finally. This is for the run that
+# dies before that.
+__pytest_tmp.html
+
 # local screenshots / scratch
 /shots/
 /shots2/

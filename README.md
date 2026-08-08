@@ -90,8 +90,38 @@ python tools/verify.py    # fail on any broken link, missing asset, parity gap
 ```
 
 The build is deterministic: same sources → identical output. CI rebuilds and
-fails if the committed pages are stale, then runs `verify.py`. Install the local
-checks with `pre-commit install`.
+fails if the committed pages are stale, then runs `verify.py`, then the tests.
+Install the local checks with `pre-commit install`.
+
+## Tests
+
+```sh
+pip install -r tools/requirements-dev.txt
+pytest tests/ -q
+```
+
+Two kinds, and the second is the point.
+
+`tests/test_enhance.py` and `tests/test_build.py` cover the transforms: the
+table conversion, the icon links, the sprite alts, the link rewriting, and the
+email redaction — where each case names what must **survive**, not only what
+must go. The redaction deletes content, and an over-deletion is silent:
+`verify.py` fails on an address that survives, never on a paragraph that
+vanished.
+
+`tests/test_verify.py` feeds every `verify.py` check the input it exists to
+refuse — a duplicate description, a missing canonical, an image with no alt, a
+broken anchor, a hotlinked image, an unlabelled card table, an `og:image` that
+is relative or on another host or the wrong size — and asserts it fails. A
+check only ever shown valid input proves nothing about what it lets through.
+`test_the_unmutated_baseline_is_clean` is what stops that file passing
+vacuously if the fixtures drift.
+
+The suite is measured by mutation rather than trusted: breaking the redaction's
+`<br>` boundary, its whitespace-tolerant forward scan, the `og:image` dimension
+comparison, its absolute-URL requirement, or the redaction call itself each
+makes tests fail. That is what says the tests can catch a regression, rather
+than merely pass.
 
 ## Hosting
 
