@@ -20,7 +20,11 @@
   // Make wide tables scrollable instead of breaking the layout. Tables the build
   // turned into a card list handle narrow screens on their own.
   document.querySelectorAll("main table").forEach(function (t) {
-    if (t.closest(".table-scroll") || t.classList.contains("t-cards")) return;
+    // A card's own table is small by construction and already inside a box the
+    // grid sizes; wrapping it adds a scroll container that can only ever be a
+    // nuisance.
+    if (t.closest(".table-scroll") || t.closest(".card") ||
+        t.classList.contains("t-cards")) return;
     var w = document.createElement("div");
     w.className = "table-scroll";
     if (t.dataset.scrollHint) {

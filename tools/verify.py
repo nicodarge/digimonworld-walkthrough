@@ -130,8 +130,13 @@ def check_page(path, lang):
         if w >= 200 and 0 < h <= 40:
             err(name, f"section banner left as an image: {img['src']} ({w}x{h})")
 
-    # 11. tables are classified, and a card table labels its cells
+    # 11. tables are classified, and a card table labels its cells.
+    #     A table inside a pop-card is exempt: it is archived layout holding one
+    #     Digimon's entry, not tabular data, so enhance.py leaves it alone and
+    #     there is nothing to classify.
     for t in soup.select("article table"):
+        if t.find_parent(class_="card"):
+            continue
         classes = set(t.get("class", []))
         if not classes & {"t-cards", "t-scroll"}:
             err(name, "table neither t-cards nor t-scroll")

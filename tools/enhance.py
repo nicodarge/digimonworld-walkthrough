@@ -229,6 +229,15 @@ def _table_width(table):
 
 def _tables(soup, lang):
     for table in soup.find_all("table"):
+        # A pop-card's table is 2003 page layout, not tabular data: one cell
+        # holding a Digimon's whole entry. Reading its full-width row as a
+        # section title paints the card navy through th[scope=colgroup], which
+        # buries the stage colour the page's own intro calls the legend, and
+        # classifying it t-scroll gave every one of the 55 cards a horizontal
+        # scrollbar inside a 289px box. The card IS the presentation here.
+        if table.find_parent(class_="card"):
+            continue
+
         rows = table.find_all("tr")
         if not rows:
             continue
