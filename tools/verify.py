@@ -278,8 +278,26 @@ def main():
         err("index.html", "root language landing missing")
     else:
         rl = open(root, encoding="utf-8").read()
-        if "location.replace" not in rl or 'href="fr/' not in rl or 'href="en/' not in rl:
-            err("index.html", "root landing must redirect and link both languages")
+        # The redirect moved into lang.js so the CSP can drop 'unsafe-inline',
+        # so check the page loads it and that the script still does the
+        # redirecting -- looking for location.replace in the page itself would
+        # now pass only if someone put the inline script back.
+        if not re.search(r'<script src="lang\.js(\?v=[0-9a-f]+)?"', rl):
+            err("index.html", "root landing does not load lang.js")
+        elif "location.replace" not in open(
+                os.path.join(REPO, "lang.js"), encoding="utf-8").read():
+            err("lang.js", "does not redirect")
+        if 'href="fr/' not in rl or 'href="en/' not in rl:
+            err("index.html", "root landing must link both languages")
+
+        # Nothing inline anywhere: that is the whole point of moving it out, and
+        # it is what lets the vhost send script-src 'self'.
+        for page in ["index.html", "404.html"] + sorted(
+                glob.glob(os.path.join(REPO, "fr", "*.html"))
+                + glob.glob(os.path.join(REPO, "en", "*.html"))):
+            path = page if os.path.isabs(page) else os.path.join(REPO, page)
+            if re.search(r"<script(?![^>]*\ssrc=)[^>]*>", open(path, encoding="utf-8").read()):
+                err(rel(path), "inline <script> defeats script-src 'self'")
 
     n_pages = sum(len(s) for s in pages.values())
     print(f"checked {n_pages} pages across {len(pages)} languages")

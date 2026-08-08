@@ -537,10 +537,7 @@ ROOT_LANDING = """<!DOCTYPE html>
      hands away. fr/index.html and en/index.html already point at each other. -->
 <link rel="canonical" href="{site}/en/index.html">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<script>
-  var l = (navigator.language || "en").toLowerCase().indexOf("fr") === 0 ? "fr" : "en";
-  location.replace(l + "/");
-</script>
+<script src="lang.js?v={lang_v}"></script>
 <style>
   body{font:16px/1.6 "Segoe UI",Arial,sans-serif;background:#0b1f3a;color:#eef3f8;
        display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;text-align:center}
@@ -650,7 +647,9 @@ def main():
     # replace, not format: the inline CSS below is full of braces and .format()
     # would treat every one of them as a field.
     with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:
-        f.write(ROOT_LANDING.replace("{site}", SITE_URL))
+        f.write(ROOT_LANDING
+                .replace("{site}", SITE_URL)
+                .replace("{lang_v}", asset_version("lang.js")))
     write_site_files(missing_en)
 
     print(f"built FR: {len(PAGES)} pages | EN: {len(PAGES)-len(missing_en)} pages")
