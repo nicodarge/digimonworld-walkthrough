@@ -36,6 +36,21 @@ FRAG = os.path.join(REPO, "sources", "fragments")
 OUT = REPO
 LANGS = ("fr", "en")
 
+
+def asset_version(name):
+    """Short content hash for a shared asset, used as a ?v= cache buster.
+
+    style.css and nav.js keep stable names, so an edge cache has nothing to tell
+    a new deploy from the old one. Cloudflare caches .css and .js by extension
+    for four hours by default, and it bit exactly once: a stylesheet fix was on
+    the origin and the edge kept serving the previous file, so the layout stayed
+    broken for visitors while every check passed. Content-derived, so the build
+    stays reproducible and the URL only moves when the file does.
+    """
+    import hashlib
+    with open(os.path.join(REPO, name), "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()[:10]
+
 # raw page name, output slug, FR nav label, EN nav label, FR h1, EN h1
 PAGES = [
     ("Accueil",       "index",          "Accueil",         "Home",         "Bienvenue",          "Welcome"),
@@ -418,7 +433,7 @@ TEMPLATE = """<!DOCTYPE html>
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:alt" content="Digimon World — Solution &amp; Guide">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../style.css?v={css_v}">
 <style>{page_styles}</style>
 </head>
 <body>
@@ -454,7 +469,7 @@ TEMPLATE = """<!DOCTYPE html>
     <p><a class="gh-link" href="{repo}"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>{contribute}</a></p>
   </div>
 </footer>
-<script src="../nav.js"></script>
+<script src="../nav.js?v={js_v}"></script>
 </body>
 </html>
 """
@@ -491,6 +506,7 @@ def render(lang, slug, h1, content, rules, with_hero):
     out = TEMPLATE.format(
         html_lang=s["html_lang"], title=html.escape(h1), desc=html.escape(desc),
         site=SITE_URL, lang=lang, repo=REPO_URL, contribute=s["contribute"],
+        css_v=asset_version("style.css"), js_v=asset_version("nav.js"),
         tagline_plain=s["tagline_plain"], og_locale=s["og_locale"],
         page=page, skip=s["skip"], tagline=s["tagline"], nav_aria=s["nav_aria"],
         page_styles=" ".join(rules), nav=build_nav(lang, slug),
@@ -551,7 +567,7 @@ NOT_FOUND = """<!DOCTYPE html>
 <title>404 — Digimon World</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v={css_v}">
 </head>
 <body>
 <main id="content" class="wrap" tabindex="-1">
@@ -590,9 +606,12 @@ def write_site_files(missing_en):
     sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                f"{body}\n</urlset>\n")
+    # replace, not format: NOT_FOUND carries no other field and 404.html is
+    # written verbatim everywhere else.
+    not_found = NOT_FOUND.replace("{css_v}", asset_version("style.css"))
     for name, text in (("sitemap.xml", sitemap),
                        ("robots.txt", ROBOTS.format(site=SITE_URL)),
-                       ("404.html", NOT_FOUND)):
+                       ("404.html", not_found)):
         with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
             f.write(text)
 
