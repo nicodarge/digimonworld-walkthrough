@@ -10,6 +10,10 @@ import glob
 from html.parser import HTMLParser
 from bs4 import BeautifulSoup
 
+# The origin lives in build.py. Copying it here would let the two drift,
+# and this check exists precisely to catch a wrong og:image URL.
+from build import SITE_URL
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LANGS = ("fr", "en")
 ASSET_ATTRS = [("img", "src"), ("script", "src"), ("link", "href"), ("source", "src")]
@@ -128,14 +132,25 @@ def check_page(path, lang):
         if not soup.select_one(sel):
             err(name, f"missing {what}")
 
-    # 13. no third-party email address reaches the published pages. The archive
+    # 13. the share card exists. og:image is the one asset nothing on the page
+    #     references, so a broken path shows up nowhere in a browser - only as
+    #     a blank preview the day someone shares the link.
+    og = soup.select_one('meta[property="og:image"]')
+    if og and og.get("content", "").startswith(SITE_URL):
+        # Not named `rel`: that is the module-level helper this function already
+        # called on its first line, and shadowing it makes the whole name local.
+        og_path = og["content"][len(SITE_URL):].lstrip("/")
+        if not os.path.exists(os.path.join(REPO, og_path)):
+            err(name, f"og:image points at a missing file: {og_path}")
+
+    # 14. no third-party email address reaches the published pages. The archive
     #     is full of 2003 contributor addresses; enhance.py strips them, and
     #     this is what keeps a future source or template change from quietly
     #     putting one back on an indexed site.
     for hit in set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", raw)):
         err(name, f"email address published: {hit}")
 
-    # 14. soft: obvious untranslated French in the English tree
+    # 15. soft: obvious untranslated French in the English tree
     if lang == "en":
         text = soup.select_one("main").get_text(" ", strip=True).lower() if soup.select_one("main") else ""
         fr_markers = re.findall(r"\b(lorsqu|aujourd|vélocité|digivolue|niveau|toutefois|pêche|épée)\w*", text)

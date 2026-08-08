@@ -57,7 +57,8 @@ sitemap.xml       # every page of both language trees
 style.css         # modern responsive styles (shared)
 nav.js            # mobile nav toggle + wide-table scroll wrapping (shared)
 id2/              # Digimon sprites
-images/ design/ screenshots/ css/ js/ Download/   # original assets (shared)
+images/           # original assets, plus og-card.png (the share card)
+design/ screenshots/ css/ js/ Download/           # original assets (shared)
 sources/          # the restoration's source of truth
   raw/            #   archived pages captured from the Wayback Machine
   raw/evol/       #   archived &evol= sub-pages
@@ -70,6 +71,10 @@ tools/
                   #   alt, header rows become <th> and stamp data-label on each
                   #   cell for the mobile card layout. Imported by build.py.
   verify.py       # checks links, assets, i18n parity, leftover legacy markup
+  make_og_image.py  # composes images/og-card.png, the 1200x630 share card.
+                  #   Run by hand, never by build.py: its output is committed,
+                  #   and wiring it in would make the CI reproducibility gate
+                  #   depend on Pillow rendering identically across versions.
   requirements.txt
 .github/workflows/ci.yml   # build-reproducibility + verify
 .pre-commit-config.yaml    # same checks locally before each commit

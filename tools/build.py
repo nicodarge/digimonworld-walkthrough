@@ -412,7 +412,10 @@ TEMPLATE = """<!DOCTYPE html>
 <meta property="og:title" content="{title} — Digimon World">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{site}/{lang}/{page}">
-<meta property="og:image" content="{site}/images/banton2.gif">
+<meta property="og:image" content="{site}/images/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Digimon World — Solution &amp; Guide">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../style.css">
 <style>{page_styles}</style>
