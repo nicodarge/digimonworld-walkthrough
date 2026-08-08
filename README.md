@@ -115,6 +115,13 @@ must go. The redaction deletes content, and an over-deletion is silent:
 `verify.py` fails on an address that survives, never on a paragraph that
 vanished.
 
+`tests/test_ci.py` asserts every workflow job runs on a GitHub-hosted image.
+This repository is public and its workflows are triggered by pull requests,
+including from forks — a self-hosted runner would execute that code on the
+owner's own machine, with whatever credentials the runner's user carries.
+Nothing here needs that, and the guard is fed `self-hosted`, a label list and a
+runner-group name to check it refuses them.
+
 `tests/test_verify.py` feeds every `verify.py` check the input it exists to
 refuse — a duplicate description, a missing canonical, an image with no alt, a
 broken anchor, a hotlinked image, an unlabelled card table, an `og:image` that
