@@ -55,6 +55,12 @@ favicon.svg       # site icon
 robots.txt        # crawler policy, points at the sitemap
 sitemap.xml       # every page of both language trees
 style.css         # modern responsive styles (shared)
+archive.css       # generated: the archive's own .StyleNN rules, one namespace
+                  #   per page — the same class name means different things on
+                  #   different pages, so they cannot share a global stylesheet
+                  #   unprefixed. Emitted by build.py, do not edit.
+root.css          # styles for the language landing only
+lang.js           # language redirect for the landing page
 nav.js            # mobile nav toggle + wide-table scroll wrapping (shared)
 id2/              # Digimon sprites
 images/           # original assets, plus og-card.png (the share card)
