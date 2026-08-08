@@ -415,6 +415,7 @@ TEMPLATE = """<!DOCTYPE html>
 <meta property="og:image" content="{site}/images/og-card.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
 <meta property="og:image:alt" content="Digimon World — Solution &amp; Guide">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../style.css">

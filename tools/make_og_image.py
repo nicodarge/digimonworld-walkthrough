@@ -31,6 +31,24 @@ MUTED = (174, 191, 208)
 BOLD = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 REGULAR = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
 
+
+def font(path, size):
+    """Load a font, or say which package is missing rather than 'cannot open resource'.
+
+    Liberation Sans is metric-compatible with Arial, which is what the site's
+    own font stack falls back to, so the card matches the pages. These paths are
+    Debian's; a maintainer on another OS has to point them at a local copy, and
+    the bare OSError Pillow raises does not hint at any of that.
+    """
+    if not os.path.exists(path):
+        raise SystemExit(
+            f"font not found: {path}\n"
+            "Install fonts-liberation (Debian/Ubuntu), or edit BOLD/REGULAR at "
+            "the top of this script to point at a local Liberation Sans."
+        )
+    return ImageFont.truetype(path, size)
+
+
 # The banner is a 10-frame animation of a lightning effect. Frames 4 and 5 wash
 # the title in purple and read badly at card size; frame 0 has the cleanest
 # lettering, so the card is not a lottery over whichever frame a decoder picks.
@@ -45,9 +63,15 @@ def banner():
     raise SystemExit(f"banner has no frame {BANNER_FRAME}")
 
 
-def centred(draw, text, font, y, fill):
-    left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
-    draw.text(((W - (right - left)) / 2 - left, y - top), text, font=font, fill=fill)
+def centred(draw, text, face, y, fill):
+    """Draw text horizontally centred, y being its visual top.
+
+    The parameter is `face`, not `font`: that name belongs to the loader above,
+    and shadowing a module-level helper with a parameter is how the same mistake
+    reached verify.py in this branch.
+    """
+    left, top, right, bottom = draw.textbbox((0, 0), text, font=face)
+    draw.text(((W - (right - left)) / 2 - left, y - top), text, font=face, fill=fill)
     return bottom - top
 
 
@@ -79,9 +103,9 @@ def main():
     # letters twice that size, and setting it again turns the card into a
     # caption of itself. The text below says what the banner cannot -- what the
     # site is, and where it lives.
-    headline = ImageFont.truetype(BOLD, 46)
-    meta = ImageFont.truetype(REGULAR, 28)
-    small = ImageFont.truetype(REGULAR, 25)
+    headline = font(BOLD, 46)
+    meta = font(REGULAR, 28)
+    small = font(REGULAR, 25)
 
     bar_y = art_y + art_h + 52
     draw.rectangle([(W - 72) // 2, bar_y, (W + 72) // 2, bar_y + 5], fill=AMBER)
