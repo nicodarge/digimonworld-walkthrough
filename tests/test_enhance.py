@@ -48,6 +48,34 @@ def test_every_table_is_classified():
         assert "t-cards" in html or "t-scroll" in html
 
 
+def test_a_card_table_is_left_alone_entirely():
+    """A pop-card's table is 2003 layout holding one entry, not tabular data.
+
+    Treating it as data did two visible things: its full-width row read as a
+    section title, so th[scope=colgroup] painted the card navy and buried the
+    stage colour the page's intro calls the legend; and classifying it t-scroll
+    gave all 55 cards a horizontal scrollbar inside a 289px box.
+    """
+    html = out('<div class="card poptrain"><table>'
+               '<tr><td><strong>Agumon</strong></td></tr>'
+               '<tr><td>Poids : 15g</td></tr>'
+               '</table></div>')
+    assert "<th" not in html
+    assert "t-scroll" not in html
+    assert "t-cards" not in html
+    assert "data-scroll-hint" not in html
+    assert "Agumon" in html and "15g" in html
+
+
+def test_a_table_outside_a_card_is_still_processed():
+    """The exemption must not switch the transformation off everywhere."""
+    html = out('<table>'
+               '<tr><td><strong>Nom</strong></td><td><strong>Prix</strong></td></tr>'
+               '<tr><td>Potion</td><td>100</td></tr>'
+               '</table>')
+    assert "<th" in html and "t-cards" in html
+
+
 # --------------------------------------------------------------------------
 # Icon links
 # --------------------------------------------------------------------------

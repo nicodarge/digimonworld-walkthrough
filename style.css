@@ -46,7 +46,11 @@ img { max-width: 100%; height: auto; }
 
 /* ---- Nav ---- */
 .site-nav { background: var(--navy-2); border-top: 1px solid rgba(255,255,255,.06); }
-.site-nav ul { display: flex; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+/* margin: 0 auto, not margin: 0 — this <ul> carries .wrap, whose whole job is
+   the auto side margins that centre it in the page column. A shorthand with an
+   explicit horizontal value silently overrides them and the nav sits flush
+   left while the header above it stays centred. */
+.site-nav ul { display: flex; flex-wrap: wrap; list-style: none; margin: 0 auto; padding: 0; }
 .site-nav a {
   display: block; color: #d4e2f0; text-decoration: none; font-size: .86rem; font-weight: 600;
   padding: 11px 14px; white-space: nowrap; border-bottom: 3px solid transparent;
@@ -56,7 +60,10 @@ img { max-width: 100%; height: auto; }
 
 /* ---- Hero (home) ---- */
 .hero {
-  margin: 22px 0 6px; border-radius: var(--radius); overflow: hidden;
+  /* auto, for the reason spelled out on .site-nav ul above: .hero also carries
+     .wrap, and `22px 0 6px` was zeroing the side margins that centre it. The
+     hero sat 110px left of the content card below it. */
+  margin: 22px auto 6px; border-radius: var(--radius); overflow: hidden;
   background: linear-gradient(160deg, #bfe2f5 0%, #9fcdef 55%, #cfe6f7 100%);
   box-shadow: var(--shadow); text-align: center; padding: 18px 16px 22px;
 }
@@ -117,6 +124,12 @@ main { padding: 8px 0 56px; }
 .page table, .page td, .page th { overflow-wrap: normal; word-break: normal; hyphens: none; }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
 .page table.t-scroll { min-width: 34rem; }
+/* ...but never inside a card. That min-width exists so a wide data table keeps
+   its columns legible and scrolls as a unit; a pop-card holds a five-row
+   key/value table that fits in 289px, and forcing it to 544px turned all 55
+   cards on the digivolution and techniques pages into little windows you had
+   to scroll sideways inside. */
+.page .card table.t-scroll { min-width: 0; }
 
 /* ---- Pop-card pages (digivolution / techniques) ---- */
 .tier { color: var(--navy); margin: 30px 0 14px; font-size: 1.3rem; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
@@ -127,7 +140,10 @@ main { padding: 8px 0 56px; }
   border: 1px solid rgba(11,31,58,.18); border-radius: 10px; padding: 10px; font-size: .9rem;
   box-shadow: var(--shadow);
 }
-.page .card table { width: 100% !important; margin: 0; background: transparent; }
+/* border: none because exactly one card in the archive (Agumon's) carries a
+   border="1" attribute the other 109 do not, and it renders as a box around
+   that one sprite. */
+.page .card table { width: 100% !important; margin: 0; background: transparent; border: none; }
 .page .card td { border: none; padding: 2px 4px; }
 .page .card img { display: block; margin: 0 auto 6px; image-rendering: auto; }
 .page .card.poptrain { background: #e9f7e6; }
