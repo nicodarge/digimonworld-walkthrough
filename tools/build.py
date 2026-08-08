@@ -437,7 +437,7 @@ TEMPLATE = """<!DOCTYPE html>
   </ul>
 </nav>
 {hero}
-<main id="content" class="wrap">
+<main id="content" class="wrap" tabindex="-1">
   <article class="page">
     <h1>{title}</h1>
 {content}
@@ -507,6 +507,12 @@ ROOT_LANDING = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Digimon World — Walkthrough &amp; Guide</title>
+<meta name="description" content="Digimon World (PlayStation, 1999) walkthrough and guide, in French and English. Choose a language to continue.">
+<!-- This page holds no content of its own: it exists to send a reader to fr/ or
+     en/. The canonical points at the English home so the two real home pages
+     collect the signals instead of competing with an empty shell at the root,
+     which is also why it carries no og:* block. -->
+<link rel="canonical" href="{site}/en/index.html">
 <link rel="alternate" hreflang="fr" href="fr/">
 <link rel="alternate" hreflang="en" href="en/">
 <link rel="alternate" hreflang="x-default" href="en/">
@@ -544,7 +550,7 @@ NOT_FOUND = """<!DOCTYPE html>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<main id="content" class="wrap">
+<main id="content" class="wrap" tabindex="-1">
   <article class="page">
     <h1>404</h1>
     <p>Cette page n'existe pas. Elle a peut-&ecirc;tre disparu avec le site d'origine.</p>
@@ -618,8 +624,10 @@ def main():
             else:
                 missing_en.append(slug)
 
+    # replace, not format: the inline CSS below is full of braces and .format()
+    # would treat every one of them as a field.
     with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:
-        f.write(ROOT_LANDING)
+        f.write(ROOT_LANDING.replace("{site}", SITE_URL))
     write_site_files(missing_en)
 
     print(f"built FR: {len(PAGES)} pages | EN: {len(PAGES)-len(missing_en)} pages")

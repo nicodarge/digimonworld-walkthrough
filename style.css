@@ -143,6 +143,13 @@ main { padding: 8px 0 56px; }
 .site-footer { background: var(--navy); color: #aebfd0; padding: 28px 0; font-size: .85rem; }
 .site-footer a { color: #7fc4ec; }
 .site-footer .muted { color: #6f8197; margin-bottom: 0; }
+
+/* Alone in its own paragraph, so it is a standalone control rather than a link
+   in a sentence and cannot claim the WCAG 2.5.8 inline exemption. At .85rem the
+   bare line box is ~22px; the padding takes it over 24. */
+.site-footer .gh-link {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 2px;
+}
 .muted { color: var(--muted); }
 
 /* ---- In-page anchors under the sticky header ---- */
@@ -150,6 +157,14 @@ main { padding: 8px 0 56px; }
    the header, so a click on "Capitale" arrives mid-paragraph. */
 :root { --header-h: 60px; }
 #content, .page [id] { scroll-margin-top: calc(var(--header-h) + 14px); }
+
+/* The back-to-top button moves focus here so the next Tab resumes from the top
+   rather than from where the reader had scrolled to. tabindex="-1" on <main> is
+   what makes that focus() do anything at all — without it the call is a no-op.
+   The ring is left to :focus-visible so keyboard users get it and a click does
+   not paint one. */
+#content:focus { outline: none; }
+#content:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
 
 /* ---- Icon links from the archive ---- */
 /* 12x15px GIFs used as links. They keep their look but get a touch-sized hit
@@ -162,11 +177,14 @@ main { padding: 8px 0 56px; }
 .page a.screen-link:hover { background: #fff; border-color: var(--blue); }
 .page a.screen-link img { display: block; }
 
-/* Links inside tables are navigation, not prose — the walkthrough's area
-   shortcuts live there. A bare 16px line box is below any touch guideline.
+/* Table links are overwhelmingly navigation — the walkthrough's area shortcuts
+   live there — and a bare 16px line box is below any touch guideline.
    Descendant, not child: the archive wraps most of them in <div align="center">.
-   Links inside a sentence are left alone; WCAG 2.5.8 exempts them, and padding
-   them would break the line rhythm of the walkthrough's prose. */
+   Links in a paragraph are left alone instead, since WCAG 2.5.8 exempts a
+   target sized by the line-height of the sentence around it, and padding those
+   would break the prose rhythm. The split is by container, not by role, so it
+   is approximate in one direction: astuces.html has a prose link inside a <td>
+   and gets the padding anyway. Harmless — a too-large target breaks nothing. */
 .page td a:not(.screen-link), .page th a:not(.screen-link) {
   display: inline-block; padding: 5px 2px;
 }

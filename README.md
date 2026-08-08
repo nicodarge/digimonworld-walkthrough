@@ -50,6 +50,10 @@ translations of the French fan-site names — see `tools/apply_place_names.py`.
 ```text
 index.html        # language landing (redirect FR/EN)
 fr/  en/          # the pages, one tree per language
+404.html          # not-found page, bilingual
+favicon.svg       # site icon
+robots.txt        # crawler policy, points at the sitemap
+sitemap.xml       # every page of both language trees
 style.css         # modern responsive styles (shared)
 nav.js            # mobile nav toggle + wide-table scroll wrapping (shared)
 id2/              # Digimon sprites
@@ -60,7 +64,11 @@ sources/          # the restoration's source of truth
   fragments/      #   per-page content fragments: <slug>.fr.html + <slug>.en.html
   wayback-*.txt   #   CDX manifests (which URLs/timestamps were captured)
 tools/
-  build.py        # regenerates fr/ + en/ from sources/
+  build.py        # regenerates fr/ + en/ from sources/, plus the files above
+  enhance.py      # turns the archived 2003 markup into accessible, responsive
+                  #   HTML: banner images become real headings, sprites get an
+                  #   alt, header rows become <th> and stamp data-label on each
+                  #   cell for the mobile card layout. Imported by build.py.
   verify.py       # checks links, assets, i18n parity, leftover legacy markup
   requirements.txt
 .github/workflows/ci.yml   # build-reproducibility + verify
