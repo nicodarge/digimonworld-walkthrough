@@ -196,6 +196,17 @@ def main():
         if soup.select_one('link[rel="alternate"][hreflang]'):
             err("index.html", "hreflang on a page whose canonical points elsewhere")
 
+    # The email check lives in check_page, which only walks fr/ and en/. These
+    # two are templates rather than archive content, so nothing puts an address
+    # in them today - which is exactly why nobody would notice if something did.
+    for extra in ("index.html", "404.html"):
+        path = os.path.join(REPO, extra)
+        if not os.path.exists(path):
+            continue
+        text = open(path, encoding="utf-8").read()
+        for hit in set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)):
+            err(extra, f"email address published: {hit}")
+
     # 9. FR/EN parity — same set of pages
     if "fr" in pages and "en" in pages:
         only_fr = pages["fr"] - pages["en"]

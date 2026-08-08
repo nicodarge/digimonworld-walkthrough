@@ -21,7 +21,7 @@ unchanged.
 import os
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 # Sub-heading banner repeated inside the walkthrough. Its text is baked into the
 # image, so unlike the area banners it cannot be derived from the fragment.
@@ -298,9 +298,16 @@ def _redact_emails(body):
     # text leaves the clause that introduced it pointing at nothing -- "vous
     # pouvez le contacter a l'adresse suivante" followed by a line break reads
     # as a broken page, not a redacted one. In this archive each such clause
-    # sits on its own <br>-delimited line, so drop the line: back to the
-    # previous <br> in the same parent, through the address, and the <br> that
-    # closed it.
+    # sits on its own <br>-delimited line, so drop the line.
+    #
+    # Bounded on purpose. Deleting a whole <br>-line is right for a short
+    # introducing clause and badly wrong for a line carrying other content --
+    # a table cell reading "Contact: x@y.z, phone: 555-1234" would lose the
+    # phone number too. Nothing in sources/ has that shape today, but the
+    # over-deletion would be silent: verify.py fails on an address that
+    # SURVIVES, never on content that vanished. So a line is only deleted when
+    # what remains of it is one short clause; anything longer falls through to
+    # the substring removal below, which is uglier but cannot eat a neighbour.
     for node in list(body.find_all(string=EMAIL_RE)):
         parent = node.parent
         if parent is None:
@@ -310,24 +317,47 @@ def _redact_emails(body):
             continue
 
         idx = siblings.index(node)
+
         start = 0
         for i in range(idx - 1, -1, -1):
             if getattr(siblings[i], "name", None) == "br":
                 start = i + 1
                 break
 
+        # Forward scan symmetric with the backward one. Stopping at the
+        # immediate next sibling is not enough: unwrapping the mailto link
+        # leaves the address and the <br> separated by a whitespace text node,
+        # so the <br> survived and the page gained a blank line -- measured
+        # against main on both emulation pages before this was fixed.
         end = idx
-        if idx + 1 < len(siblings) and getattr(siblings[idx + 1], "name", None) == "br":
-            end = idx + 1
+        for i in range(idx + 1, len(siblings)):
+            if getattr(siblings[i], "name", None) == "br":
+                end = i
+                break
+            if not (isinstance(siblings[i], NavigableString) and not siblings[i].strip()):
+                break
 
-        for victim in siblings[start:end + 1]:
-            victim.extract()
+        # A real <br> on at least one side is what makes this a line at all.
+        # With none, "the line" is simply everything in the parent, and
+        # deleting it takes unrelated content with it -- a table cell reading
+        # "Contact: x@y.z, phone: 555-1234" loses the phone number. Probed:
+        # that exact shape now keeps the number.
+        has_br_boundary = start > 0 or end > idx
 
-    # Belt and braces. An address somewhere this archive does not currently put
-    # one -- inside a table cell, say -- still has to go, even if the prose
-    # around it then reads a little short. verify.py fails on any address that
-    # reaches the output, so this branch is what keeps a future source edit
-    # from turning that check into a hard stop.
+        line = siblings[start:end + 1]
+        remainder = EMAIL_RE.sub("", "".join(
+            n if isinstance(n, NavigableString) else n.get_text() for n in line))
+        one_clause = (not re.search(r"[.!?]\s+\S", remainder)
+                      and len(remainder.strip()) <= 120)
+
+        if has_br_boundary and one_clause:
+            for victim in line:
+                victim.extract()
+
+    # Whatever the loop above left alone -- a line too long or too rich to
+    # delete wholesale -- still must not publish an address. verify.py fails
+    # the build on any that reaches the output, so this is what keeps that
+    # check from turning a future source edit into a hard stop.
     for node in list(body.find_all(string=EMAIL_RE)):
         node.replace_with(EMAIL_RE.sub("", node))
 
