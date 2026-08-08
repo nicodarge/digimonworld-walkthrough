@@ -232,7 +232,8 @@ def main():
         check_descriptions(lang)
 
     # crawler-facing files the build emits alongside the pages
-    for f in ("sitemap.xml", "robots.txt", "404.html", "favicon.svg"):
+    for f in ("sitemap.xml", "robots.txt", "404.html", "favicon.svg",
+              "archive.css", "root.css", "lang.js"):
         if not os.path.exists(os.path.join(REPO, f)):
             err(f, "missing from the built site")
 
@@ -296,8 +297,18 @@ def main():
                 glob.glob(os.path.join(REPO, "fr", "*.html"))
                 + glob.glob(os.path.join(REPO, "en", "*.html"))):
             path = page if os.path.isabs(page) else os.path.join(REPO, page)
-            if re.search(r"<script(?![^>]*\ssrc=)[^>]*>", open(path, encoding="utf-8").read()):
+            text = open(path, encoding="utf-8").read()
+            if re.search(r"<script(?![^>]*\ssrc=)[^>]*>", text):
                 err(rel(path), "inline <script> defeats script-src 'self'")
+            if "<style" in text:
+                err(rel(path), "inline <style> defeats style-src 'self'")
+            # A .StyleNN class with no page prefix would need a rule that no
+            # longer exists: the archive reuses those names across pages for
+            # different declarations, so they only work namespaced.
+            for cls in re.findall(r'class="([^"]*)"', text):
+                for c in cls.split():
+                    if re.fullmatch(r"Style\d+", c):
+                        err(rel(path), f"unprefixed archive class {c}")
 
     n_pages = sum(len(s) for s in pages.values())
     print(f"checked {n_pages} pages across {len(pages)} languages")

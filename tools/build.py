@@ -181,6 +181,58 @@ def style_rules(soup):
                 seen.add(key); rules.append(r)
     return rules
 
+STYLE_CLASS = re.compile(r"\AStyle\d+\Z")
+
+
+def style_prefix(slug):
+    return f"p-{slug}"
+
+
+def prefix_rules(rules, slug):
+    """Namespace a page's .StyleNN selectors to that page.
+
+    The archive reuses the same class names across pages for different
+    declarations -- .Style8 is #3399CC on one page and #000000 on another, and
+    two more collide the same way. That is why these rules could only ever live
+    in a per-page <style> block, which is what forced style-src 'unsafe-inline'.
+    Prefixed, they can all sit in one stylesheet without colliding.
+    """
+    p = style_prefix(slug)
+    return [re.sub(r"\.Style(\d+)", lambda m: f".{p}-Style{m.group(1)}", r) for r in rules]
+
+
+def prefix_content_classes(content, slug, defined):
+    """The other half: rewrite class="StyleNN" in the page to match its rules.
+
+    A StyleNN the page's own <style> never defined is dropped rather than
+    prefixed. The archive has some -- arene.html carries class="Style6" while
+    its source declares only .Style14 -- and they styled nothing before this
+    change either. Prefixing them would produce a class name no rule matches,
+    which reads as styling that went missing rather than markup that never did
+    anything.
+    """
+    p = style_prefix(slug)
+    soup = BeautifulSoup(content, "lxml")
+    body = soup.body or soup
+    for el in body.find_all(class_=True):
+        kept = []
+        for c in el.get("class"):
+            if not STYLE_CLASS.match(c):
+                kept.append(c)
+            elif c in defined:
+                kept.append(f"{p}-{c}")
+        if kept:
+            el["class"] = kept
+        else:
+            del el["class"]
+    return body.decode_contents().strip()
+
+
+def defined_styles(rules):
+    """The StyleNN names a page's own rules actually declare."""
+    return {m for r in rules for m in re.findall(r"\.(Style\d+)", r)}
+
+
 def clean_cell(cell, drop_lead_title=True):
     for tag in cell.find_all(["style", "title", "script"]):
         tag.decompose()
@@ -434,7 +486,7 @@ TEMPLATE = """<!DOCTYPE html>
 <meta property="og:image:alt" content="Digimon World — Solution &amp; Guide">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../style.css?v={css_v}">
-<style>{page_styles}</style>
+<link rel="stylesheet" href="../archive.css?v={archive_v}">
 </head>
 <body>
 <a class="skip" href="#content">{skip}</a>
@@ -499,7 +551,7 @@ def subdir_assets(s):
     """Prefix relative asset paths with ../ for pages living in /fr or /en."""
     return _ASSET_RE.sub(r'\1="../\2"', s)
 
-def render(lang, slug, h1, content, rules, with_hero):
+def render(lang, slug, h1, content, archive_v, defined, with_hero):
     s = STRINGS[lang]
     page = ("index.html" if slug == "index" else slug + ".html")
     desc = DESCRIPTIONS[slug][0 if lang == "fr" else 1]
@@ -509,9 +561,9 @@ def render(lang, slug, h1, content, rules, with_hero):
         css_v=asset_version("style.css"), js_v=asset_version("nav.js"),
         tagline_plain=s["tagline_plain"], og_locale=s["og_locale"],
         page=page, skip=s["skip"], tagline=s["tagline"], nav_aria=s["nav_aria"],
-        page_styles=" ".join(rules), nav=build_nav(lang, slug),
+        archive_v=archive_v, nav=build_nav(lang, slug),
         hero=(hero(lang) if with_hero else ""),
-        content=subdir_assets(enhance(content, lang, h1)),
+        content=subdir_assets(enhance(prefix_content_classes(content, slug, defined), lang, h1)),
         foot1=s["foot1"], foot2=s["foot2"],
         fr_active=(' class="active"' if lang == "fr" else ""),
         en_active=(' class="active"' if lang == "en" else ""),
@@ -538,13 +590,7 @@ ROOT_LANDING = """<!DOCTYPE html>
 <link rel="canonical" href="{site}/en/index.html">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <script src="lang.js?v={lang_v}"></script>
-<style>
-  body{font:16px/1.6 "Segoe UI",Arial,sans-serif;background:#0b1f3a;color:#eef3f8;
-       display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;text-align:center}
-  a{display:inline-block;margin:8px;padding:12px 26px;border-radius:999px;background:#ff8a1f;
-    color:#1a2533;font-weight:700;text-decoration:none}
-  a.alt{background:rgba(255,255,255,.12);color:#fff}
-</style>
+<link rel="stylesheet" href="root.css?v={root_v}">
 </head>
 <body>
 <div>
@@ -613,6 +659,28 @@ def write_site_files(missing_en):
             f.write(text)
 
 
+def write_archive_css(rules_by):
+    """Emit archive.css: every page's .StyleNN rules, each under its own prefix.
+
+    These used to be a per-page inline <style>, which is the only reason the
+    vhost had to send style-src 'unsafe-inline'. They could not simply be
+    concatenated because the archive reuses class names for different
+    declarations across pages; prefixing is what makes one file possible.
+    """
+    out = ["/* Generated by tools/build.py - do not edit.",
+           " * The archive's own .StyleNN rules, namespaced per page: the same",
+           " * class name means different things on different pages, so each",
+           " * page's rules carry its own prefix. */"]
+    for _raw, slug, *_ in PAGES:
+        rules = rules_by.get(slug)
+        if not rules:
+            continue
+        out.append(f"\n/* {slug} */")
+        out.extend(prefix_rules(rules, slug))
+    with open(os.path.join(OUT, "archive.css"), "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+
+
 def main():
     os.makedirs(FRAG, exist_ok=True)
     # collect FR content + rules once, dump fragments for translation
@@ -626,21 +694,27 @@ def main():
         with open(os.path.join(FRAG, slug + ".fr.html"), "w", encoding="utf-8") as f:
             f.write(content)
 
+    # One stylesheet for every page's archived rules, namespaced per page, so
+    # the CSP can say style-src 'self'. Written before any page is rendered:
+    # each page references it by content hash, so it has to exist first.
+    write_archive_css(rules_by)
+    archive_v = asset_version("archive.css")
+
     missing_en = []
     for raw, slug, fr_nav, en_nav, fr_h1, en_h1 in PAGES:
         with_hero = (slug == "index")
+        defined = defined_styles(rules_by.get(slug, []))
         # French
         fr_c = home_content("fr") if slug == "index" else fr_frag[slug]
-        fr_r = [] if slug == "index" else rules_by[slug]
-        render("fr", slug, fr_h1, fr_c, fr_r, with_hero)
+        render("fr", slug, fr_h1, fr_c, archive_v, defined, with_hero)
         # English
         if slug == "index":
-            render("en", slug, en_h1, home_content("en"), [], with_hero)
+            render("en", slug, en_h1, home_content("en"), archive_v, set(), with_hero)
         else:
             ep = os.path.join(FRAG, slug + ".en.html")
             if os.path.exists(ep):
                 en_c = open(ep, encoding="utf-8").read()
-                render("en", slug, en_h1, en_c, rules_by[slug], with_hero)
+                render("en", slug, en_h1, en_c, archive_v, defined, with_hero)
             else:
                 missing_en.append(slug)
 
@@ -649,7 +723,8 @@ def main():
     with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:
         f.write(ROOT_LANDING
                 .replace("{site}", SITE_URL)
-                .replace("{lang_v}", asset_version("lang.js")))
+                .replace("{lang_v}", asset_version("lang.js"))
+                .replace("{root_v}", asset_version("root.css")))
     write_site_files(missing_en)
 
     print(f"built FR: {len(PAGES)} pages | EN: {len(PAGES)-len(missing_en)} pages")

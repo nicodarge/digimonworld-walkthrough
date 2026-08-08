@@ -1,0 +1,14 @@
+/* The root language chooser, which shares no chrome with the rest of the site.
+   A file rather than an inline <style> for the same reason lang.js is a file:
+   it is what lets the vhost send style-src 'self'. */
+body {
+  font: 16px/1.6 "Segoe UI", Arial, sans-serif;
+  background: #0b1f3a; color: #eef3f8;
+  display: flex; min-height: 100vh; margin: 0;
+  align-items: center; justify-content: center; text-align: center;
+}
+a {
+  display: inline-block; margin: 8px; padding: 12px 26px; border-radius: 999px;
+  background: #ff8a1f; color: #1a2533; font-weight: 700; text-decoration: none;
+}
+a.alt { background: rgba(255, 255, 255, .12); color: #fff; }

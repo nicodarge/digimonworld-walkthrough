@@ -63,11 +63,12 @@ def test_the_root_page_substitutes_the_site_url():
     assert build.SITE_URL in html
 
 
-def test_the_root_page_css_survived_the_substitution():
-    """A stray .format() would have raised on the braces, or eaten them."""
+def test_the_root_page_styles_moved_out_but_survived():
+    """They were inline until style-src had to drop 'unsafe-inline'."""
     html = read("index.html")
-    assert "display:flex" in html
-    assert html.count("{") == html.count("}")
+    assert "<style" not in html
+    css = read("root.css")
+    assert "display: flex" in css and "#ff8a1f" in css
 
 
 def test_the_root_page_points_its_canonical_at_a_real_page():
@@ -189,3 +190,54 @@ def test_the_chooser_is_not_the_only_way_out():
     """Scripting off, or a crawler: both languages stay reachable by link."""
     html = read("index.html")
     assert 'href="fr/' in html and 'href="en/' in html
+
+
+# --------------------------------------------------------------------------
+# Archive styles, namespaced per page
+# --------------------------------------------------------------------------
+
+def test_the_colliding_classes_are_namespaced_apart():
+    """The whole reason these could not share a stylesheet.
+
+    .Style8 is #3399CC on one page and #000000 on another; .Style9 and
+    .Style10 collide the same way. Prefixed, all three can coexist.
+    """
+    css = read("archive.css")
+    for cls in ("Style8", "Style9", "Style10"):
+        prefixed = re.findall(rf"^\.(p-[a-z0-9-]+)-{cls} ", css, re.M)
+        assert len(prefixed) > 1, f"{cls} appears once; the collision case is gone"
+        assert len(prefixed) == len(set(prefixed)), f"{cls} prefixed twice the same"
+
+
+def test_no_page_carries_an_inline_style():
+    pages = ["index.html", "404.html"]
+    for lang in ("fr", "en"):
+        pages += [os.path.join(lang, n) for n in sorted(os.listdir(os.path.join(REPO, lang)))]
+    for page in pages:
+        assert "<style" not in read(page), f"{page} has an inline <style>"
+
+
+def test_every_archive_class_used_by_a_page_is_defined_in_the_stylesheet():
+    """A prefix typo would silently drop the styling rather than error."""
+    css = read("archive.css")
+    defined = set(re.findall(r"^\.([a-z0-9-]+-Style\d+) ", css, re.M))
+    for lang in ("fr", "en"):
+        for name in sorted(os.listdir(os.path.join(REPO, lang))):
+            for attr in re.findall(r'class="([^"]*)"', read(lang, name)):
+                for c in attr.split():
+                    if re.search(r"-Style\d+$", c):
+                        assert c in defined, f"{lang}/{name} uses .{c}, absent from archive.css"
+
+
+def test_no_page_uses_an_unprefixed_archive_class():
+    for lang in ("fr", "en"):
+        for name in sorted(os.listdir(os.path.join(REPO, lang))):
+            for attr in re.findall(r'class="([^"]*)"', read(lang, name)):
+                for c in attr.split():
+                    assert not re.fullmatch(r"Style\d+", c), f"{lang}/{name}: bare .{c}"
+
+
+def test_the_stylesheets_are_versioned():
+    html = read("fr", "index.html")
+    assert re.search(r'archive\.css\?v=[0-9a-f]{10}"', html)
+    assert re.search(r'root\.css\?v=[0-9a-f]{10}"', read("index.html"))
