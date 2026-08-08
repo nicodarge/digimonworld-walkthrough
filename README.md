@@ -63,7 +63,7 @@ tools/
   build.py        # regenerates fr/ + en/ from sources/
   verify.py       # checks links, assets, i18n parity, leftover legacy markup
   requirements.txt
-.github/workflows/ci.yml   # build-reproducibility + verify + Pages deploy
+.github/workflows/ci.yml   # build-reproducibility + verify
 .pre-commit-config.yaml    # same checks locally before each commit
 ```
 
@@ -77,8 +77,21 @@ python tools/verify.py    # fail on any broken link, missing asset, parity gap
 ```
 
 The build is deterministic: same sources → identical output. CI rebuilds and
-fails if the committed pages are stale, then runs `verify.py`, then deploys to
-GitHub Pages. Install the local checks with `pre-commit install`.
+fails if the committed pages are stale, then runs `verify.py`. Install the local
+checks with `pre-commit install`.
+
+## Hosting
+
+The site is served at <https://digimon-world.groniko.fr>, self-hosted rather
+than on GitHub Pages. Delivery is pull-only: the web server clones this
+repository over anonymous HTTPS and keeps it at the tip of `main`, so a merge
+reaches the site on the server's next configuration run. Nothing is pushed from
+CI and no credential exists on either side — which is why this repository is
+public.
+
+`SITE_URL` in `tools/build.py` is that origin. It is baked into every canonical
+link, `og:url` and sitemap entry, so it is the one place to change if the site
+ever moves.
 
 ## Credits & legal
 

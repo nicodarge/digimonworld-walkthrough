@@ -109,8 +109,14 @@ main { padding: 8px 0 56px; }
 /* ---- Legacy tables -> readable + responsive ---- */
 .page table { border-collapse: collapse; margin: 16px 0; max-width: 100%; background: #fff; }
 .page td, .page th { border: 1px solid var(--border); padding: 7px 10px; vertical-align: top; font-size: .92rem; }
-.page th, .page tr:first-child td { background: #eef4fa; font-weight: 600; }
+.page th { background: #eef4fa; font-weight: 600; text-align: left; }
+.page th[scope="colgroup"] { background: var(--navy-2); color: #fff; text-align: center; }
+/* .page sets overflow-wrap: anywhere so long legacy URLs cannot widen the page.
+   Inside a narrow cell that same rule breaks ordinary words one letter per line
+   ("Recrut / er Palmon"), so cells opt out and the table scrolls instead. */
+.page table, .page td, .page th { overflow-wrap: normal; word-break: normal; hyphens: none; }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+.page table.t-scroll { min-width: 34rem; }
 
 /* ---- Pop-card pages (digivolution / techniques) ---- */
 .tier { color: var(--navy); margin: 30px 0 14px; font-size: 1.3rem; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
@@ -139,13 +145,75 @@ main { padding: 8px 0 56px; }
 .site-footer .muted { color: #6f8197; margin-bottom: 0; }
 .muted { color: var(--muted); }
 
+/* ---- In-page anchors under the sticky header ---- */
+/* Without this the walkthrough's shortcut links land the section title behind
+   the header, so a click on "Capitale" arrives mid-paragraph. */
+:root { --header-h: 60px; }
+#content, .page [id] { scroll-margin-top: calc(var(--header-h) + 14px); }
+
+/* ---- Icon links from the archive ---- */
+/* 12x15px GIFs used as links. They keep their look but get a touch-sized hit
+   area and, through the build, an accessible name. */
+.page a.screen-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; min-height: 28px; vertical-align: middle; margin: 0 2px;
+  border-radius: 6px; background: var(--bg); border: 1px solid var(--border);
+}
+.page a.screen-link:hover { background: #fff; border-color: var(--blue); }
+.page a.screen-link img { display: block; }
+
+/* Links inside tables are navigation, not prose — the walkthrough's area
+   shortcuts live there. A bare 16px line box is below any touch guideline.
+   Descendant, not child: the archive wraps most of them in <div align="center">.
+   Links inside a sentence are left alone; WCAG 2.5.8 exempts them, and padding
+   them would break the line rhythm of the walkthrough's prose. */
+.page td a:not(.screen-link), .page th a:not(.screen-link) {
+  display: inline-block; padding: 5px 2px;
+}
+
+/* ---- Back to top ---- */
+/* Replaces the 20 inline 15px arrows the archive repeated after each banner. */
+.to-top-btn {
+  position: fixed; right: 18px; bottom: 18px; z-index: 40;
+  display: none; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 16px; border: none; border-radius: 999px;
+  background: var(--navy); color: #fff; font: 600 .85rem/1 inherit;
+  font-family: inherit; cursor: pointer; box-shadow: 0 4px 14px rgba(11,31,58,.3);
+}
+.to-top-btn:hover { background: var(--amber); color: var(--ink); }
+.to-top-btn.show { display: inline-flex; }
+
 /* ---- Mobile ---- */
 @media (max-width: 760px) {
   .nav-toggle { display: inline-block; }
   .site-nav ul { display: none; flex-direction: column; }
-  .site-nav.open ul { display: flex; }
+  /* The 17 entries are taller than the viewport; the panel scrolls on its own
+     instead of pushing the page content out of reach. */
+  .site-nav.open ul {
+    display: flex; max-height: calc(100dvh - var(--header-h)); overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   .site-nav a { padding: 13px 16px; border-top: 1px solid rgba(255,255,255,.08); border-bottom: none; }
   .site-nav a.active { border-left: 3px solid var(--amber); border-bottom: none; }
   .page { padding: 18px 16px; }
   .brand span { display: none; }
+}
+
+/* ---- Tables as cards on narrow screens ---- */
+/* Only tables whose columns are actually named (build.py stamps data-label from
+   the header row) can become cards; the others keep scrolling horizontally. */
+@media (max-width: 600px) {
+  .page table.t-cards { min-width: 0; width: 100%; border: none; }
+  .page table.t-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .page table.t-cards tr {
+    display: block; margin-bottom: 12px; border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; background: #fff;
+  }
+  .page table.t-cards td { display: flex; gap: 10px; border: none; border-top: 1px solid var(--border); }
+  .page table.t-cards tr td:first-child { border-top: none; }
+  .page table.t-cards td::before {
+    content: attr(data-label); flex: 0 0 8.5rem; font-weight: 600; color: var(--muted);
+  }
+  .page table.t-cards td:not([data-label]) { display: block; }
+  .page table.t-cards th[scope="colgroup"] { display: block; border-radius: 8px; margin-bottom: 8px; }
 }

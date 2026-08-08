@@ -87,12 +87,72 @@ def check_page(path, lang):
         if bad in raw:
             err(name, f"leftover legacy markup: {bad!r}")
 
-    # 8. soft: obvious untranslated French in the English tree
+    # 8. every image carries an alt; the Digimon sprites ARE the content
+    for img in soup.find_all("img"):
+        if img.get("alt") is None:
+            err(name, f"image without alt: {img.get('src')}")
+
+    # 9. in-page anchors resolve. The walkthrough navigates by them, and a
+    #    heading that lost its id sends the reader to the top of the page.
+    ids = {e["id"] for e in soup.find_all(id=True)}
+    for a in soup.find_all("a", href=True):
+        h = a["href"].strip()
+        if h.startswith("#") and len(h) > 1 and h[1:] not in ids:
+            err(name, f"anchor with no target: {h}")
+
+    # 10. a text-bearing banner image is a heading the build failed to convert.
+    #     Banners are a fixed shape in this archive — a wide, short strip of
+    #     rendered text (290x25). Real illustrations on the same pages are
+    #     roughly square (300x214), so the shape separates them cleanly.
+    for img in soup.select("article img[src]"):
+        try:
+            w, h = int(img.get("width", 0)), int(img.get("height", 0))
+        except ValueError:
+            continue
+        if w >= 200 and 0 < h <= 40:
+            err(name, f"section banner left as an image: {img['src']} ({w}x{h})")
+
+    # 11. tables are classified, and a card table labels its cells
+    for t in soup.select("article table"):
+        classes = set(t.get("class", []))
+        if not classes & {"t-cards", "t-scroll"}:
+            err(name, "table neither t-cards nor t-scroll")
+        if "t-cards" in classes and not t.select("td[data-label]"):
+            err(name, "t-cards table without a single labelled cell")
+
+    # 12. crawler metadata
+    for sel, what in [('link[rel="canonical"]', "canonical"),
+                      ('meta[property="og:title"]', "og:title"),
+                      ('link[rel="icon"]', "favicon"),
+                      ('meta[name="description"]', "description")]:
+        if not soup.select_one(sel):
+            err(name, f"missing {what}")
+
+    # 13. soft: obvious untranslated French in the English tree
     if lang == "en":
         text = soup.select_one("main").get_text(" ", strip=True).lower() if soup.select_one("main") else ""
         fr_markers = re.findall(r"\b(lorsqu|aujourd|vélocité|digivolue|niveau|toutefois|pêche|épée)\w*", text)
         if len(fr_markers) > 3:
             warn(name, f"possible untranslated French ({len(fr_markers)} markers, e.g. {fr_markers[:4]})")
+
+def check_descriptions(lang):
+    """A description repeated across pages is what a crawler reads as duplicate.
+
+    This is the check that would have caught the single shared description the
+    site shipped with: it was valid HTML, present on every page, and identical.
+    """
+    seen = {}
+    for path in sorted(glob.glob(os.path.join(REPO, lang, "*.html"))):
+        soup = BeautifulSoup(open(path, encoding="utf-8").read(), "lxml")
+        tag = soup.select_one('meta[name="description"]')
+        if not tag:
+            continue
+        text = (tag.get("content") or "").strip()
+        if text in seen:
+            err(rel(path), f"description identical to {seen[text]}")
+        else:
+            seen[text] = os.path.basename(path)
+
 
 def main():
     pages = {}
@@ -106,6 +166,12 @@ def main():
             slugs.add(os.path.basename(path))
             check_page(path, lang)
         pages[lang] = slugs
+        check_descriptions(lang)
+
+    # crawler-facing files the build emits alongside the pages
+    for f in ("sitemap.xml", "robots.txt", "404.html", "favicon.svg"):
+        if not os.path.exists(os.path.join(REPO, f)):
+            err(f, "missing from the built site")
 
     # 9. FR/EN parity — same set of pages
     if "fr" in pages and "en" in pages:

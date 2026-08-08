@@ -27,6 +27,8 @@ import os
 import html
 from bs4 import BeautifulSoup
 
+from enhance import enhance
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)          # tools/ -> repository root
 RAW = os.path.join(REPO, "sources", "raw")
@@ -54,6 +56,76 @@ PAGES = [
     ("Participation", "participation",  "Participation",   "Contribute",   "Participation",      "Contribute"),
     ("Contact",       "contact",        "Contact",         "Contact",      "Contact",            "Contact"),
 ]
+
+# Canonical origin. Every absolute URL the site emits (canonical, hreflang,
+# Open Graph, sitemap) is built from it, so moving hosts is a one-line change.
+SITE_URL = "https://digimon-world.groniko.fr"
+REPO_URL = "https://github.com/nicodarge/digimonworld-walkthrough"
+
+# One description per page. A single shared description across 34 pages is a
+# duplicate-content signal, and it is what search engines quote under the title.
+DESCRIPTIONS = {
+    "index": ("Guide complet de Digimon World (PlayStation) : solution pas à pas, arbre de "
+              "digivolution, techniques, objets et astuces. Site de préservation.",
+              "Complete guide to Digimon World (PlayStation): step-by-step walkthrough, "
+              "digivolution tree, techniques, items and tips. A preservation site."),
+    "histoire": ("L'histoire de Digimon World et de File Island, et le contexte de la série "
+                 "Digimon à l'époque du jeu.",
+                 "The story of Digimon World and File Island, and the background of the Digimon "
+                 "series at the time of the game."),
+    "solution": ("La solution complète de Digimon World, zone par zone : Capitale, Forêt "
+                 "Originelle, Grand Canyon, Mont Eternel, et le recrutement de chaque Digimon.",
+                 "The complete Digimon World walkthrough, area by area: File City, Native Forest, "
+                 "Great Canyon, Mount Infinity, and how to recruit every Digimon."),
+    "digivolution": ("L'arbre de digivolution complet des 55 Digimon : conditions de poids, "
+                     "erreurs de soin et statistiques requises pour chaque évolution.",
+                     "The complete digivolution tree for all 55 Digimon: weight, care mistakes "
+                     "and stat requirements for every evolution."),
+    "techniques": ("Les techniques apprises par chaque Digimon de Digimon World, ainsi que leur "
+                   "Technique Spéciale.",
+                   "The techniques each Digimon learns in Digimon World, along with its Special "
+                   "Technique."),
+    "objets": ("Les objets digivolutifs de Digimon World : en quoi chacun fait évoluer, et où le "
+               "trouver.",
+               "Digivolution items in Digimon World: what each one evolves into, and where to "
+               "find it."),
+    "magasins": ("Tous les magasins de Digimon World : emplacement, articles vendus et conditions "
+                 "pour les débloquer.",
+                 "Every shop in Digimon World: location, goods sold and how to unlock them."),
+    "arene": ("L'arène de combat de Digimon World : fonctionnement des tournois, adversaires et "
+              "récompenses.",
+              "The Battle Arena in Digimon World: how the tournaments work, opponents and "
+              "rewards."),
+    "peche": ("La pêche dans Digimon World : poissons, appâts, emplacements et ce qu'on en tire.",
+              "Fishing in Digimon World: fish, bait, locations and what you get from them."),
+    "chasse": ("La chasse au trésor de Digimon World : où creuser et ce que l'on peut y trouver.",
+               "The treasure hunt in Digimon World: where to dig and what can be found."),
+    "cartes": ("Le jeu de cartes de Digimon World : règles, liste des cartes et comment les "
+               "obtenir.",
+               "The card game in Digimon World: rules, card list and how to obtain them."),
+    "medailles": ("Les médailles de Digimon World : la liste complète et comment débloquer "
+                  "chacune d'elles.",
+                  "Medals in Digimon World: the complete list and how to unlock each one."),
+    "emulation": ("Émuler Digimon World sur PC : émulateurs PlayStation, configuration et "
+                  "problèmes connus.",
+                  "Emulating Digimon World on PC: PlayStation emulators, setup and known issues."),
+    "astuces": ("Astuces et codes Action Replay pour Digimon World, et les bugs connus des "
+                "versions françaises.",
+                "Tips and Action Replay codes for Digimon World, and the known bugs in the French "
+                "releases."),
+    "telechargements": ("Les fichiers proposés par le site d'origine de Saetta, conservés dans "
+                        "cette copie de préservation.",
+                        "The files offered by Saetta's original site, kept in this preservation "
+                        "copy."),
+    "participation": ("Comment le site d'origine invitait ses lecteurs à contribuer au guide "
+                      "Digimon World.",
+                      "How the original site invited its readers to contribute to the Digimon "
+                      "World guide."),
+    "contact": ("Contacter les mainteneurs de cette copie de préservation du guide Digimon World "
+                "de Saetta.",
+                "Contact the maintainers of this preservation copy of Saetta's Digimon World "
+                "guide."),
+}
 
 LINKMAP = {raw.lower(): (slug + ".html") for raw, slug, *_ in PAGES}
 LINKMAP["news"] = "index.html"
@@ -283,6 +355,9 @@ STRINGS = {
         "skip": "Aller au contenu",
         "tagline": "— Solution &amp; Guide",
         "nav_aria": "Navigation principale",
+        "tagline_plain": "Solution & Guide",
+        "og_locale": "fr_FR",
+        "contribute": "Contribuer sur GitHub",
         "desc": ("Solution complète et guide du jeu Digimon World (PSX) : soluce pas à pas, "
                  "arbre de digivolution, techniques, objets, magasins, médailles, pêche et codes."),
         "hero_tag": ('La solution complète et le guide du jeu <strong>Digimon World</strong> sur '
@@ -301,6 +376,9 @@ STRINGS = {
         "skip": "Skip to content",
         "tagline": "— Walkthrough &amp; Guide",
         "nav_aria": "Main navigation",
+        "tagline_plain": "Walkthrough & Guide",
+        "og_locale": "en_GB",
+        "contribute": "Contribute on GitHub",
         "desc": ("Complete walkthrough and guide for Digimon World (PSX): step-by-step solution, "
                  "digivolution tree, techniques, items, shops, medals, fishing and codes."),
         "hero_tag": ('The complete walkthrough and guide for <strong>Digimon World</strong> on '
@@ -323,9 +401,19 @@ TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} — Digimon World</title>
 <meta name="description" content="{desc}">
-<link rel="alternate" hreflang="fr" href="../fr/{page}">
-<link rel="alternate" hreflang="en" href="../en/{page}">
-<link rel="alternate" hreflang="x-default" href="../en/{page}">
+<link rel="canonical" href="{site}/{lang}/{page}">
+<link rel="alternate" hreflang="fr" href="{site}/fr/{page}">
+<link rel="alternate" hreflang="en" href="{site}/en/{page}">
+<link rel="alternate" hreflang="x-default" href="{site}/en/{page}">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Digimon World — {tagline_plain}">
+<meta property="og:locale" content="{og_locale}">
+<meta property="og:title" content="{title} — Digimon World">
+<meta property="og:description" content="{desc}">
+<meta property="og:url" content="{site}/{lang}/{page}">
+<meta property="og:image" content="{site}/images/banton2.gif">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../style.css">
 <style>{page_styles}</style>
 </head>
@@ -359,6 +447,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div class="wrap">
     <p>{foot1}</p>
     <p class="muted">{foot2}</p>
+    <p><a class="gh-link" href="{repo}"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>{contribute}</a></p>
   </div>
 </footer>
 <script src="../nav.js"></script>
@@ -394,12 +483,15 @@ def subdir_assets(s):
 def render(lang, slug, h1, content, rules, with_hero):
     s = STRINGS[lang]
     page = ("index.html" if slug == "index" else slug + ".html")
+    desc = DESCRIPTIONS[slug][0 if lang == "fr" else 1]
     out = TEMPLATE.format(
-        html_lang=s["html_lang"], title=html.escape(h1), desc=html.escape(s["desc"]),
+        html_lang=s["html_lang"], title=html.escape(h1), desc=html.escape(desc),
+        site=SITE_URL, lang=lang, repo=REPO_URL, contribute=s["contribute"],
+        tagline_plain=s["tagline_plain"], og_locale=s["og_locale"],
         page=page, skip=s["skip"], tagline=s["tagline"], nav_aria=s["nav_aria"],
         page_styles=" ".join(rules), nav=build_nav(lang, slug),
         hero=(hero(lang) if with_hero else ""),
-        content=subdir_assets(content),
+        content=subdir_assets(enhance(content, lang, h1)),
         foot1=s["foot1"], foot2=s["foot2"],
         fr_active=(' class="active"' if lang == "fr" else ""),
         en_active=(' class="active"' if lang == "en" else ""),
@@ -418,6 +510,7 @@ ROOT_LANDING = """<!DOCTYPE html>
 <link rel="alternate" hreflang="fr" href="fr/">
 <link rel="alternate" hreflang="en" href="en/">
 <link rel="alternate" hreflang="x-default" href="en/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <script>
   var l = (navigator.language || "en").toLowerCase().indexOf("fr") === 0 ? "fr" : "en";
   location.replace(l + "/");
@@ -439,6 +532,60 @@ ROOT_LANDING = """<!DOCTYPE html>
 </body>
 </html>
 """
+
+NOT_FOUND = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 — Digimon World</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main id="content" class="wrap">
+  <article class="page">
+    <h1>404</h1>
+    <p>Cette page n'existe pas. Elle a peut-&ecirc;tre disparu avec le site d'origine.</p>
+    <p>This page does not exist. It may have gone with the original site.</p>
+    <p class="cta">
+      <a class="btn btn-primary" href="/fr/">Accueil</a>
+      <a class="btn btn-ghost" href="/en/">Home</a>
+    </p>
+  </article>
+</main>
+</body>
+</html>
+"""
+
+ROBOTS = """User-agent: *
+Allow: /
+
+Sitemap: {site}/sitemap.xml
+"""
+
+
+def write_site_files(missing_en):
+    """Emit the files that describe the site to crawlers, plus the 404 page."""
+    urls = []
+    for _raw, slug, *_ in PAGES:
+        page = "index.html" if slug == "index" else slug + ".html"
+        for lang in LANGS:
+            if lang == "en" and slug in missing_en:
+                continue
+            urls.append(f"{SITE_URL}/{lang}/{page}")
+    body = "\n".join(
+        f"  <url><loc>{html.escape(u)}</loc></url>" for u in urls)
+    sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+               f"{body}\n</urlset>\n")
+    for name, text in (("sitemap.xml", sitemap),
+                       ("robots.txt", ROBOTS.format(site=SITE_URL)),
+                       ("404.html", NOT_FOUND)):
+        with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
+            f.write(text)
+
 
 def main():
     os.makedirs(FRAG, exist_ok=True)
@@ -473,6 +620,7 @@ def main():
 
     with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:
         f.write(ROOT_LANDING)
+    write_site_files(missing_en)
 
     print(f"built FR: {len(PAGES)} pages | EN: {len(PAGES)-len(missing_en)} pages")
     if missing_en:
