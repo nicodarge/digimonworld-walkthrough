@@ -157,3 +157,35 @@ def test_every_page_carries_the_same_version():
             assert m, f"{lang}/{name} does not version its stylesheet"
             stamps.add(m.group(1))
     assert len(stamps) == 1, stamps
+
+
+# --------------------------------------------------------------------------
+# No inline script anywhere
+# --------------------------------------------------------------------------
+
+INLINE_SCRIPT = re.compile(r"<script(?![^>]*\ssrc=)[^>]*>")
+
+
+def test_no_page_carries_an_inline_script():
+    """What lets the vhost send script-src 'self' instead of 'unsafe-inline'.
+
+    The language chooser's redirect was the only one, and it lived on the page a
+    visitor hits first.
+    """
+    pages = ["index.html", "404.html"]
+    for lang in ("fr", "en"):
+        pages += [os.path.join(lang, n) for n in sorted(os.listdir(os.path.join(REPO, lang)))]
+    for page in pages:
+        assert not INLINE_SCRIPT.search(read(page)), f"{page} has an inline <script>"
+
+
+def test_the_root_page_loads_the_chooser_and_it_redirects():
+    html = read("index.html")
+    assert re.search(r'<script src="lang\.js\?v=[0-9a-f]{10}"', html)
+    assert "location.replace" in read("lang.js")
+
+
+def test_the_chooser_is_not_the_only_way_out():
+    """Scripting off, or a crawler: both languages stay reachable by link."""
+    html = read("index.html")
+    assert 'href="fr/' in html and 'href="en/' in html
