@@ -84,6 +84,7 @@ tools/
   requirements.txt
 .github/workflows/ci.yml   # build-reproducibility + verify
 .pre-commit-config.yaml    # same checks locally before each commit
+renovate.json              # dependency updates (Renovate)
 ```
 
 ## Rebuilding & verifying
@@ -135,6 +136,16 @@ The suite is measured by mutation rather than trusted: breaking the redaction's
 comparison, its absolute-URL requirement, or the redaction call itself each
 makes tests fail. That is what says the tests can catch a regression, rather
 than merely pass.
+
+## Dependency updates
+
+`renovate.json` configures Renovate, which runs from the scheduled workflow in
+the Puppet repository (this repository must be listed in its
+`.github/renovate-global.json`), not from an app installed here.
+`enabledManagers` is an allowlist, so an ecosystem added to the repository is
+ignored until it is listed. Its pull requests are reviewed and merged by hand:
+the bump review and merge workflows need a self-hosted runner, which
+`tests/test_ci.py` forbids on this public repository.
 
 ## Hosting
 
