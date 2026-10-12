@@ -143,9 +143,11 @@ than merely pass.
 the Puppet repository (this repository must be listed in its
 `.github/renovate-global.json`), not from an app installed here.
 `enabledManagers` is an allowlist, so an ecosystem added to the repository is
-ignored until it is listed. Renovate merges its own pull requests once every
-check is green (`platformAutomerge` is off); the bump review and merge
-workflows need a self-hosted runner, which `tests/test_ci.py` forbids on this
+ignored until it is listed. Renovate merges its own pull requests once the
+branch is up to date and every check is green (`platformAutomerge` is off);
+the `pre-commit` CI job runs every hook, so a hook bump is exercised before it
+merges. The Puppet repository's bump review and merge workflows are not used
+here: they need a self-hosted runner, which `tests/test_ci.py` forbids on this
 public repository.
 
 ## Hosting
