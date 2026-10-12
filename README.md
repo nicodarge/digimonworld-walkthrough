@@ -169,3 +169,5 @@ Original content and walkthrough by the author of `saetta.free.fr/DigimonWorld`.
 This is a non-commercial preservation copy with attribution. *Digimon* is a
 trademark of Bandai; this is an unofficial fan resource for informational and
 archival purposes.
+
+<!-- ruleset probe -->
