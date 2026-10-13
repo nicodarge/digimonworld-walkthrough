@@ -82,7 +82,7 @@ tools/
                   #   and wiring it in would make the CI reproducibility gate
                   #   depend on Pillow rendering identically across versions.
   requirements.txt
-.github/workflows/ci.yml   # build-reproducibility + verify
+.github/workflows/ci.yml   # build-reproducibility + verify + gate
 .pre-commit-config.yaml    # same checks locally before each commit
 renovate.json              # dependency updates (Renovate)
 ```
@@ -143,10 +143,11 @@ than merely pass.
 the Puppet repository (this repository must be listed in its
 `.github/renovate-global.json`), not from an app installed here.
 `enabledManagers` is an allowlist, so an ecosystem added to the repository is
-ignored until it is listed. Renovate merges its own pull requests once the
-branch is up to date and every check is green (`platformAutomerge` is off);
-the `pre-commit` CI job runs every hook, so a hook bump is exercised before it
-merges. The Puppet repository's bump review and merge workflows are not used
+ignored until it is listed. Renovate enables GitHub auto-merge on its own pull
+requests (`platformAutomerge`), so GitHub merges each one once the required
+checks pass; the `gate` CI job needs every other job, so it is the one check
+for the ruleset to require. The `pre-commit` CI job runs every hook, so a hook
+bump is exercised before it merges. The Puppet repository's bump review and merge workflows are not used
 here: they need a self-hosted runner, which `tests/test_ci.py` forbids on this
 public repository.
 
