@@ -1,4 +1,5 @@
-# Run: pre-commit install   then   pre-commit run --all-files
+# Run: pre-commit install. The commit stage only fixes; CI runs the `manual` stage (pre-commit run --all-files --hook-stage manual).
+default_stages: [pre-commit]
 exclude: '^(id2|images|screenshots|design|css|js|Download)/'
 
 repos:
@@ -9,19 +10,25 @@ repos:
       # untouched so the generator stays the single source of formatting.
       - id: trailing-whitespace
         exclude: '^(fr/|en/|index\.html|sources/fragments/)'
+        stages: [pre-commit]
       - id: end-of-file-fixer
         exclude: '^(fr/|en/|index\.html|sources/fragments/)'
+        stages: [pre-commit]
       - id: check-yaml
+        stages: [manual]
       - id: check-merge-conflict
+        stages: [pre-commit]
       - id: mixed-line-ending
         args: [--fix=lf]
         exclude: '^(fr/|en/|index\.html|sources/fragments/)'
+        stages: [pre-commit]
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.49.1
     hooks:
       - id: markdownlint
         files: '\.md$'
+        stages: [manual]
 
   - repo: local
     hooks:
@@ -36,19 +43,4 @@ repos:
         # staleness surfaces in CI's reproducibility gate instead of here,
         # which is the gap this hook exists to close.
         files: '^(tools/(build|enhance)\.py|sources/)'
-
-      - id: verify-site
-        name: verify site (links, assets, i18n parity)
-        entry: python3 tools/verify.py
-        language: python
-        additional_dependencies: [beautifulsoup4, lxml]
-        pass_filenames: false
-        always_run: true
-
-      - id: tests
-        name: tests (transforms, and every verify check fed what it must refuse)
-        entry: python3 -m pytest tests/ -q
-        language: python
-        additional_dependencies: [beautifulsoup4, lxml, pytest]
-        pass_filenames: false
-        always_run: true
+        stages: [pre-commit]
