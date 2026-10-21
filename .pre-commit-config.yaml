@@ -1,4 +1,4 @@
-# Run: pre-commit install. The commit stage only fixes; CI runs the `manual` stage (pre-commit run --all-files --hook-stage manual).
+# Run: pre-commit install. The commit stage fixes and guards; CI runs the `manual` stage (pre-commit run --all-files --hook-stage manual).
 default_stages: [pre-commit]
 exclude: '^(id2|images|screenshots|design|css|js|Download)/'
 
@@ -17,7 +17,9 @@ repos:
       - id: check-yaml
         stages: [manual]
       - id: check-merge-conflict
-        stages: [pre-commit]
+        # Vacuous in CI without it: a checkout is not a merge in progress
+        args: [--assume-in-merge]
+        stages: [pre-commit, manual]
       - id: mixed-line-ending
         args: [--fix=lf]
         exclude: '^(fr/|en/|index\.html|sources/fragments/)'
