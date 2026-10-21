@@ -104,7 +104,8 @@ regenerate the pages from `sources/`. Every hook names its `stages` and
 `default_stages` is `[pre-commit]`: a hook without them would also run under
 `--hook-stage manual`, because upstream manifests list `manual`.
 The guard (`check-merge-conflict`) names both, `stages: [pre-commit, manual]`, so
-it also runs in CI.
+it also runs in CI, with `--assume-in-merge` because a CI checkout is no merge
+in progress and the hook would otherwise pass vacuously.
 
 ## Tests
 
