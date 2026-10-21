@@ -83,7 +83,7 @@ tools/
                   #   depend on Pillow rendering identically across versions.
   requirements.txt
 .github/workflows/ci.yml   # CI; its gate job is the one required check
-.pre-commit-config.yaml    # same checks locally before each commit
+.pre-commit-config.yaml    # commit-stage fixers; the verifying hooks are `manual` and run in CI
 renovate.json              # dependency updates (Renovate)
 ```
 
@@ -97,8 +97,10 @@ python tools/verify.py    # fail on any broken link, missing asset, parity gap
 ```
 
 The build is deterministic: same sources → identical output. CI rebuilds and
-fails if the committed pages are stale, then runs `verify.py`, then the tests.
-Install the local checks with `pre-commit install`.
+fails if the committed pages are stale, then runs `verify.py`, then the tests;
+none of this is repeated locally. Install the commit-stage hooks with
+`pre-commit install`: they only fix files (whitespace, line endings) and
+regenerate the pages from `sources/`.
 
 ## Tests
 
@@ -147,8 +149,8 @@ ignored until it is listed. Renovate enables GitHub auto-merge on its own pull
 requests (`platformAutomerge`, which needs the repository's "Allow auto-merge"
 setting), so GitHub merges each one once the checks the default-branch ruleset
 requires pass. That ruleset requires `gate`, the CI job that needs every other
-job. The `pre-commit` CI job runs every hook, so a hook bump is exercised before
-it merges. The Puppet repository's bump review and merge workflows are not used
+job. The `pre-commit` CI job runs the verifying (`stages: [manual]`) hooks, so a hook
+bump is exercised before it merges. The Puppet repository's bump review and merge workflows are not used
 here: they need a self-hosted runner, which `tests/test_ci.py` forbids on this
 public repository.
 
