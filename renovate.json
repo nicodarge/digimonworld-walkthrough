@@ -5,7 +5,7 @@
   "gitAuthor": "Nicolas Dargent <darge.nicolas@gmail.com>",
   "schedule": ["on monday, wednesday and friday"],
   "updateNotScheduled": false,
-  "enabledManagers": ["github-actions", "pip_requirements", "pre-commit"],
+  "enabledManagers": ["custom.regex", "github-actions", "pip_requirements", "pre-commit"],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "automerge": true,
@@ -14,5 +14,15 @@
   "automergeStrategy": "squash",
   "pre-commit": {
     "enabled": true
-  }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "pre-commit pinned in a workflow, under a `# renovate:` comment",
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+PRE_COMMIT_VERSION: (?<currentValue>\\S+)"
+      ]
+    }
+  ]
 }

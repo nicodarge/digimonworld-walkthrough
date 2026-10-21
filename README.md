@@ -100,7 +100,9 @@ The build is deterministic: same sources → identical output. CI rebuilds and
 fails if the committed pages are stale, then runs `verify.py`, then the tests;
 none of this is repeated locally. Install the commit-stage hooks with
 `pre-commit install`: they only fix files (whitespace, line endings) and
-regenerate the pages from `sources/`.
+regenerate the pages from `sources/`. Every hook names its `stages` and
+`default_stages` is `[pre-commit]`: a hook without them would also run under
+`--hook-stage manual`, because upstream manifests list `manual`.
 
 ## Tests
 

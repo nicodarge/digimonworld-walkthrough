@@ -65,8 +65,11 @@ jobs:
       # .pre-commit-config.yaml, so a Renovate bump of a hook is exercised before
       # Renovate merges it. The fixers that run at commit are not re-run here.
       - name: pre-commit
+        env:
+          # renovate: datasource=pypi depName=pre-commit
+          PRE_COMMIT_VERSION: 4.7.0
         run: |
-          pip install pre-commit
+          pip install "pre-commit==${PRE_COMMIT_VERSION}"
           pre-commit run --all-files --hook-stage manual --show-diff-on-failure
 
   # One check for branch protection to require. Without it, protection has to name
