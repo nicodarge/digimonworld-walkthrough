@@ -83,7 +83,7 @@ tools/
                   #   depend on Pillow rendering identically across versions.
   requirements.txt
 .github/workflows/ci.yml   # CI; its gate job is the one required check
-.pre-commit-config.yaml    # commit-stage fixers; the verifying hooks are `manual` and run in CI
+.pre-commit-config.yaml    # commit-stage fixers; the verifying hooks are `manual` and run in CI; the guards run in both
 renovate.json              # dependency updates (Renovate)
 ```
 
@@ -103,6 +103,8 @@ none of this is repeated locally. Install the commit-stage hooks with
 regenerate the pages from `sources/`. Every hook names its `stages` and
 `default_stages` is `[pre-commit]`: a hook without them would also run under
 `--hook-stage manual`, because upstream manifests list `manual`.
+The guard (`check-merge-conflict`) names both, `stages: [pre-commit, manual]`, so
+it also runs in CI.
 
 ## Tests
 

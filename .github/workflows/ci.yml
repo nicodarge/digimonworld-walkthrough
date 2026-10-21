@@ -61,9 +61,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Runs the verifying hooks (`stages: [manual]`) at the revs in
-      # .pre-commit-config.yaml, so a Renovate bump of a hook is exercised before
-      # Renovate merges it. The fixers that run at commit are not re-run here.
+      # Runs the verifying hooks (`stages: [manual]`) and the guards
+      # (`stages: [pre-commit, manual]`) at the revs in .pre-commit-config.yaml,
+      # so a Renovate bump of a hook is exercised before Renovate merges it. The
+      # fixers that run at commit are not re-run here.
       - name: pre-commit
         env:
           # renovate: datasource=pypi depName=pre-commit
