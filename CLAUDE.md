@@ -11,15 +11,15 @@ Static, bilingual (FR/EN) restoration of the fan site `saetta.free.fr/DigimonWor
   `sitemap.xml` or `archive.css`.** Run `python tools/build.py` and commit the result; CI fails when committed
   pages are stale.
 - **French is derived, English is hand-written.** `build.py` rewrites every `sources/fragments/<slug>.fr.html`
-  from `sources/raw/` through `tools/enhance.py` on each build, so a hand edit there is lost: change the
-  transforms in `tools/`. Only `sources/fragments/<slug>.en.html` is edited by hand; keep parity with the
-  French page.
+  from `sources/raw/` on each build (`fr_content()` in `tools/build.py`), so a hand edit there is lost: change the
+  extraction in `build.py`, or the page markup in `tools/enhance.py`, which `render()` applies to both languages.
+  Only `sources/fragments/<slug>.en.html` is edited by hand; keep parity with the French page.
 - `sources/raw/` and `sources/wayback-*.txt` are the Wayback captures: read-only evidence.
 - English place names follow the official Digimon World (PSX) names. `tools/apply_place_names.py` was a
   run-once normaliser already applied to the `.en.html` fragments: new English text uses the same names.
 - The `build-site` commit hook rebuilds on a change under `sources/` or to `build.py`/`enhance.py`. An edit to
-  `style.css`, `nav.js`, `lang.js` or `root.css` changes content hashes in every page and does not fire it:
-  run `python tools/build.py` by hand.
+  `style.css`, `nav.js` (hashed into every page), `lang.js` or `root.css` (hashed into the root `index.html`) does
+  not fire it: run `python tools/build.py` by hand.
 - `tools/make_og_image.py` is run by hand and its output (`images/og-card.png`) committed; never wire it into
   `build.py` (reproducibility gate).
 - `SITE_URL` in `tools/build.py` is baked into every canonical link, `og:url` and sitemap entry.
